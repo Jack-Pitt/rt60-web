@@ -7,6 +7,7 @@ import {
 } from '../storage/measurements'
 import { IMPULSE_SOURCE_LABELS } from '../measurement/types'
 import ResultsTable from '../components/ResultsTable'
+import DecaySection from '../components/DecaySection'
 
 // History view — the brief calls this "Home" but its job is to show the
 // list of past measurements. Users can re-open any saved measurement to
@@ -65,6 +66,7 @@ export default function Home() {
               Recording clipped — see flagged bands.
             </div>
           )}
+          <DecaySection result={item.result} />
           <ResultsTable result={item.result} />
           <div className="capture-controls">
             <button className="primary-btn primary-btn-stop" onClick={() => handleDelete(item.id)}>

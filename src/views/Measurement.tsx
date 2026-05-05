@@ -22,6 +22,7 @@ import { useSettings } from '../settings/SettingsContext'
 import { analyzeImpulseResponse } from '../dsp/analyze'
 import { BANDS } from '../dsp/bands'
 import ResultsTable from '../components/ResultsTable'
+import DecaySection from '../components/DecaySection'
 import { saveMeasurement } from '../storage/measurements'
 import { useNavigate } from 'react-router-dom'
 
@@ -201,6 +202,7 @@ export default function Measurement() {
             Recording clipped — impulse may be invalid. Reduce source level or move further away.
           </div>
         )}
+        <DecaySection result={analysis} />
         <ResultsTable result={analysis} />
         {error && (
           <div className="alert alert-error">

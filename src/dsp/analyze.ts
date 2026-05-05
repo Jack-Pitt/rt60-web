@@ -66,6 +66,10 @@ export interface BandResult {
   reportedRange: [number, number]
   /** dB endpoints of the reported regression range, e.g. [-5, -25]. */
   reportedDbRange: [number, number]
+  /** Full regression result for the reported metric, kept so the plot can
+   *  draw the line directly (slope/intercept) without re-fitting. Null
+   *  for EDT-only and invalid where there's no T30/T20 line. */
+  reportedRegression: RegressionResult | null
 
   /** EDT seconds (always computed). NaN if the EDC didn't reach -10 dB. */
   edtSeconds: number
@@ -77,8 +81,15 @@ export interface BandResult {
   /** Energy-decay curve in dB relative to peak. */
   edcDb: Float32Array
 
-  /** Noise floor in dB relative to the impulse peak amplitude (negative). */
+  /** Noise RMS in dB below impulse peak amplitude. Negative; useful for
+   *  understanding INR but NOT directly comparable to the EDC scale. */
   noiseFloorDb: number
+  /** "Noise plateau" level in dB relative to the EDC peak. Computed as
+   *  10*log10((noiseRms^2 * impulse_length) / total_impulse_energy) — the
+   *  level the EDC would reach if the IR window contained only noise.
+   *  Drawn as a horizontal line on the decay plot to show where the
+   *  algorithm believes noise dominates. */
+  noisePlateauDb: number
 
   /** All flags applicable to this band. */
   flags: ResultFlag[]
@@ -176,6 +187,21 @@ function analyseBand(
   const noiseFloorDb =
     peak > 0 && noiseRmsEffective > 0 ? 20 * Math.log10(noiseRmsEffective / peak) : -Infinity
 
+  // Noise plateau on the EDC scale: where the EDC would land if the IR
+  // window contained only noise of this RMS. Used as the horizontal noise
+  // line on the decay plot. Computed from total IR energy (= cumulative[0]
+  // of the squared signal) vs noise energy over the same window length.
+  let totalImpulseEnergy = 0
+  for (let i = 0; i < filteredImpulse.length; i++) {
+    const s = filteredImpulse[i]
+    totalImpulseEnergy += s * s
+  }
+  const noiseEnergyOverWindow = noiseRmsEffective * noiseRmsEffective * filteredImpulse.length
+  const noisePlateauDb =
+    totalImpulseEnergy > 0 && noiseEnergyOverWindow > 0
+      ? 10 * Math.log10(noiseEnergyOverWindow / totalImpulseEnergy)
+      : -Infinity
+
   // Always compute EDT (0 to -10 dB).
   const edt = fitDecayRT(edcDb, input.sampleRate, 0, -10)
 
@@ -185,6 +211,7 @@ function analyseBand(
   let reportedR2 = NaN
   let reportedRange: [number, number] = [-1, -1]
   let reportedDbRange: [number, number] = [0, 0]
+  let reportedRegression: RegressionResult | null = null
 
   if (inr >= thresholds.t30) {
     const fit = fitDecayRT(edcDb, input.sampleRate, -5, -35)
@@ -193,6 +220,7 @@ function analyseBand(
     reportedR2 = fit.regression.r2
     reportedRange = [fit.sampleStart, fit.sampleEnd]
     reportedDbRange = [-5, -35]
+    reportedRegression = fit.regression
   } else if (inr >= thresholds.t20) {
     const fit = fitDecayRT(edcDb, input.sampleRate, -5, -25)
     reportedMetric = 'T20'
@@ -200,12 +228,14 @@ function analyseBand(
     reportedR2 = fit.regression.r2
     reportedRange = [fit.sampleStart, fit.sampleEnd]
     reportedDbRange = [-5, -25]
+    reportedRegression = fit.regression
   } else if (inr >= thresholds.edtOnly) {
     reportedMetric = 'EDT-only'
     reportedRt = NaN
     reportedR2 = NaN
     reportedRange = [edt.sampleStart, edt.sampleEnd]
     reportedDbRange = [0, -10]
+    reportedRegression = null
   } else {
     reportedMetric = 'invalid'
   }
@@ -226,12 +256,14 @@ function analyseBand(
     reportedR2,
     reportedRange,
     reportedDbRange,
+    reportedRegression,
     edtSeconds: edt.rtSeconds,
     edtR2: edt.regression.r2,
     edtRegression: edt.regression,
     edtRange: [edt.sampleStart, edt.sampleEnd],
     edcDb,
     noiseFloorDb,
+    noisePlateauDb,
     flags,
   }
 }
