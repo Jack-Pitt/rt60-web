@@ -123,8 +123,11 @@ export default function RTSpectrumPlot({
         }
         ySeriesArrays.push(uncArr)
         uplotSeries.push({
-          label: `${s.label} (uncertain)`,
-          stroke: 'transparent',
+          label: `${s.label} (dubious)`,
+          // Series stroke determines the legend swatch colour, even when
+          // width=0 means no actual line is drawn on the plot. Red so the
+          // legend matches the hollow red ring markers below.
+          stroke: UNCERTAIN_COLOR,
           width: 0,
           // Bigger, hollow markers in red over the uncertain bands.
           points: {

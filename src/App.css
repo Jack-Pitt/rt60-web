@@ -766,6 +766,13 @@
 .u-axis text { fill: #9aa1ad !important; }
 .u-legend { background: #181b22; color: #c4c8d2; padding: 4px 8px; font-size: 11px; }
 .u-legend th { color: #9aa1ad; }
+
+/* uPlot draws each legend row's colour swatch as a small square via
+   .u-marker. Round it to a circle so the legend matches the filled-
+   circle markers we use on the plot data points. */
+.u-legend .u-marker {
+  border-radius: 50% !important;
+}
 .legend-swatch.uncertain {
   background-image: repeating-linear-gradient(
     45deg,

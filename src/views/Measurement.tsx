@@ -374,9 +374,11 @@ export default function Measurement() {
 }
 
 /**
- * Build two series (RT solid + EDT dashed) for the single-measurement
- * spectrum plot. RT prefers T30/T20 reported value; EDT is always
- * computed. Both arrays align to the band centre order in the result.
+ * Build the spectrum-plot series for a single measurement. We split the
+ * reported RT into separate T30 and T20 series so each can take its own
+ * colour matching the button/pill scheme (T30 dark green, T20 light
+ * green). EDT goes on its own dashed line in orange. Bands not falling
+ * into the relevant metric are NaN so the line breaks cleanly.
  *
  * "Dubious" bands are flagged on the plot via the uncertain mask —
  * the line breaks at them and red ring markers are drawn over their
@@ -389,12 +391,20 @@ export default function Measurement() {
  *     untrustworthy on a spectrum plot.
  */
 export function singleMeasurementSeries(result: AnalysisResult): SpectrumSeries[] {
-  const rtValues = result.bands.map((b) => b.reportedRtSeconds)
+  const t30Values = result.bands.map((b) =>
+    b.reportedMetric === 'T30' ? b.reportedRtSeconds : NaN,
+  )
+  const t20Values = result.bands.map((b) =>
+    b.reportedMetric === 'T20' ? b.reportedRtSeconds : NaN,
+  )
   const edtValues = result.bands.map((b) => b.edtSeconds)
   const uncertain = result.bands.map(isBandDubious)
   return [
-    { label: 'T30/T20', values: rtValues, uncertain, style: 'solid', color: '#5fa8ff' },
-    { label: 'EDT', values: edtValues, uncertain, style: 'dashed', color: '#f5d36a' },
+    // Colours match the metric pills/buttons, slightly brightened for line
+    // visibility on the dark plot background.
+    { label: 'T30', values: t30Values, uncertain, style: 'solid', color: '#2bb060' },
+    { label: 'T20', values: t20Values, uncertain, style: 'solid', color: '#7ed68f' },
+    { label: 'EDT', values: edtValues, uncertain, style: 'dashed', color: '#f0902e' },
   ]
 }
 
