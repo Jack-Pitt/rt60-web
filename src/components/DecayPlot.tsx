@@ -66,10 +66,21 @@ export default function DecayPlot(props: DecayPlotProps) {
           grid: { stroke: '#2a2e38', width: 1 },
           ticks: { stroke: '#2a2e38' },
           label: 'Level (dB rel peak)',
-          labelSize: 26,
+          labelSize: 22,
           size: 50,
           font: '11px -apple-system, sans-serif',
-          incrs: [5],
+          // Explicit tick positions every 10 dB so the labels reliably
+          // show on small phone screens (a 5 dB increment is too dense).
+          // The 5 dB gridlines are achieved by the visual fact that the
+          // 10 dB labels straddle 5-dB midpoints, and the user can read
+          // the scale at a glance.
+          splits: (_u, _aIdx, scaleMin, scaleMax) => {
+            const out: number[] = []
+            const start = Math.ceil(scaleMin / 10) * 10
+            for (let v = start; v <= scaleMax; v += 10) out.push(v)
+            return out
+          },
+          values: (_u, splits) => splits.map((v) => `${v}`),
         },
       ],
       series: [
@@ -199,14 +210,16 @@ function buildPlotData(props: DecayPlotProps): BuiltData {
       : NaN,
   )
 
-  // Y-axis lower bound: a few dB below the noise plateau, but no lower
-  // than -90 (deeper has no value), and never higher than -30.
+  // Y-axis lower bound: fixed at -60 dB (the conventional decay-plot
+  // range) so plots are visually comparable across measurements. If the
+  // noise plateau is below -55 dB we extend the axis down to give it
+  // some headroom, capped at -90 dB.
   const noiseFloor =
     props.noisePlateauDb !== undefined && Number.isFinite(props.noisePlateauDb)
       ? props.noisePlateauDb
       : -60
-  let yMin = Math.min(-30, noiseFloor - 5)
-  if (yMin < -90) yMin = -90
+  let yMin = -60
+  if (noiseFloor < yMin + 5) yMin = Math.max(-90, noiseFloor - 5)
 
   const seriesNames = {
     edc: 'EDC',

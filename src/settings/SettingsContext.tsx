@@ -16,6 +16,11 @@ export interface Settings {
   nonLinearR2Threshold: number
   /** Set of band centre frequencies (Hz) that are enabled for analysis. */
   enabledBandCentres: number[]
+  /** Upper bound for the y-axis on the RT-vs-frequency spectrum plot.
+   *  The plot auto-scales for low-RT measurements but never exceeds this
+   *  ceiling, so a single very long band doesn't squash the rest of the
+   *  spectrum into the bottom of the plot. */
+  rtPlotMaxSec: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -24,11 +29,12 @@ export const DEFAULT_SETTINGS: Settings = {
   inrThresholds: { ...DEFAULT_INR_THRESHOLDS },
   nonLinearR2Threshold: 0.95,
   enabledBandCentres: BANDS.map((b) => b.centre),
+  rtPlotMaxSec: 3,
 }
 
 // Bumped each time the defaults change so users pick up new values instead
 // of being stuck on the saved old ones.
-const STORAGE_KEY = 'rt60.settings.v3'
+const STORAGE_KEY = 'rt60.settings.v4'
 
 interface Ctx {
   settings: Settings
@@ -88,6 +94,7 @@ function loadSettings(): Settings {
         Array.isArray(parsed.enabledBandCentres) && parsed.enabledBandCentres.length > 0
           ? parsed.enabledBandCentres
           : DEFAULT_SETTINGS.enabledBandCentres,
+      rtPlotMaxSec: clamp(parsed.rtPlotMaxSec ?? DEFAULT_SETTINGS.rtPlotMaxSec, 1, 10),
     }
   } catch {
     return DEFAULT_SETTINGS

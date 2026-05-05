@@ -208,6 +208,7 @@ export default function Measurement() {
         <RTSpectrumPlot
           bandCentres={analysis.bands.map((b) => b.band.centre)}
           series={singleMeasurementSeries(analysis)}
+          maxRtSec={settings.rtPlotMaxSec}
         />
         <DecaySection result={analysis} />
         <ResultsTable result={analysis} />
@@ -376,13 +377,17 @@ export default function Measurement() {
  * Build two series (RT solid + EDT dashed) for the single-measurement
  * spectrum plot. RT prefers T30/T20 reported value; EDT is always
  * computed. Both arrays align to the band centre order in the result.
+ * Uncertain mask flags bands at the bottom (50-100 Hz) and top
+ * (6.3-10 kHz) of the audio range where the phone mic response is
+ * unreliable; the plot overlays red markers at those points.
  */
 export function singleMeasurementSeries(result: AnalysisResult): SpectrumSeries[] {
   const rtValues = result.bands.map((b) => b.reportedRtSeconds)
   const edtValues = result.bands.map((b) => b.edtSeconds)
+  const uncertain = result.bands.map((b) => b.band.uncertain)
   return [
-    { label: 'T30/T20', values: rtValues, style: 'solid', color: '#5fa8ff' },
-    { label: 'EDT', values: edtValues, style: 'dashed', color: '#f5d36a' },
+    { label: 'T30/T20', values: rtValues, uncertain, style: 'solid', color: '#5fa8ff' },
+    { label: 'EDT', values: edtValues, uncertain, style: 'dashed', color: '#f5d36a' },
   ]
 }
 

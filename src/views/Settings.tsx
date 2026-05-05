@@ -48,6 +48,27 @@ export default function Settings() {
       </section>
 
       <section className="settings-section">
+        <label className="settings-label">
+          RT spectrum plot — y-axis ceiling (s)
+          <input
+            type="number"
+            min={1}
+            max={10}
+            step={0.5}
+            value={settings.rtPlotMaxSec}
+            onChange={(e) =>
+              update('rtPlotMaxSec', clamp(Number(e.target.value), 1, 10))
+            }
+          />
+        </label>
+        <p className="muted">
+          Maximum RT (in seconds) shown on the y-axis of the RT-vs-frequency
+          plot. The axis still auto-scales below this — set higher only if
+          you're measuring a large reverberant space.
+        </p>
+      </section>
+
+      <section className="settings-section">
         <h3>Trigger threshold (dB above background)</h3>
         <p className="muted">
           Impulse is detected when any sample is this many dB above the just-measured

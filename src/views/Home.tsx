@@ -10,6 +10,7 @@ import ResultsTable from '../components/ResultsTable'
 import DecaySection from '../components/DecaySection'
 import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
 import { singleMeasurementSeries } from './Measurement'
+import { useSettings } from '../settings/SettingsContext'
 
 // History view — list of saved measurements, with two interaction modes:
 //   - Default: tap a row to open its full results screen.
@@ -21,6 +22,7 @@ import { singleMeasurementSeries } from './Measurement'
 // plot, decay curves, and the full table.
 
 export default function Home() {
+  const { settings } = useSettings()
   const [items, setItems] = useState<SavedMeasurement[] | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -84,6 +86,7 @@ export default function Home() {
       <ComparisonView
         items={compared}
         onBack={() => setShowingComparison(false)}
+        maxRtSec={settings.rtPlotMaxSec}
       />
     )
   }
@@ -115,6 +118,7 @@ export default function Home() {
           <RTSpectrumPlot
             bandCentres={item.result.bands.map((b) => b.band.centre)}
             series={singleMeasurementSeries(item.result)}
+            maxRtSec={settings.rtPlotMaxSec}
           />
           <DecaySection result={item.result} />
           <ResultsTable result={item.result} />
@@ -194,6 +198,7 @@ export default function Home() {
 interface ComparisonProps {
   items: SavedMeasurement[]
   onBack: () => void
+  maxRtSec: number
 }
 
 const COMPARE_PALETTE = [
@@ -207,7 +212,7 @@ const COMPARE_PALETTE = [
   '#a896e0',
 ]
 
-function ComparisonView({ items, onBack }: ComparisonProps) {
+function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
   // We assume all selected measurements were taken with the same band set.
   // If they differ, fall back to the first item's bands (rare since the
   // app uses fixed third-octave bands).
@@ -226,6 +231,9 @@ function ComparisonView({ items, onBack }: ComparisonProps) {
             : NaN
         })
       : [],
+    // Flag the same uncertain bands across every series since the band
+    // metadata is shared.
+    uncertain: items[0]?.result.bands.map((b) => b.band.uncertain) ?? [],
     style: 'solid',
     color: COMPARE_PALETTE[i % COMPARE_PALETTE.length],
   }))
@@ -243,7 +251,12 @@ function ComparisonView({ items, onBack }: ComparisonProps) {
         (T30/T20) per third-octave band; gaps indicate bands with no
         reportable value (low INR or non-linear decay).
       </p>
-      <RTSpectrumPlot bandCentres={bandCentres} series={series} height={320} />
+      <RTSpectrumPlot
+        bandCentres={bandCentres}
+        series={series}
+        height={320}
+        maxRtSec={maxRtSec}
+      />
       <ul className="compare-legend">
         {items.map((item, i) => (
           <li key={item.id}>
