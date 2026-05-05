@@ -9,7 +9,7 @@ import { IMPULSE_SOURCE_LABELS } from '../measurement/types'
 import ResultsTable from '../components/ResultsTable'
 import DecaySection from '../components/DecaySection'
 import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
-import { singleMeasurementSeries } from './Measurement'
+import { singleMeasurementSeries, isBandDubious } from './Measurement'
 import { useSettings } from '../settings/SettingsContext'
 
 // History view — list of saved measurements, with two interaction modes:
@@ -221,22 +221,33 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
     [items],
   )
 
-  const series: SpectrumSeries[] = items.map((item, i) => ({
-    label: `${item.metadata.room || item.metadata.site} / ${item.metadata.position}`,
-    values: items[0]
-      ? items[0].result.bands.map((b, idx) => {
-          const matching = item.result.bands[idx]
-          return matching && matching.band.centre === b.band.centre
-            ? matching.reportedRtSeconds
-            : NaN
-        })
-      : [],
-    // Flag the same uncertain bands across every series since the band
-    // metadata is shared.
-    uncertain: items[0]?.result.bands.map((b) => b.band.uncertain) ?? [],
-    style: 'solid',
-    color: COMPARE_PALETTE[i % COMPARE_PALETTE.length],
-  }))
+  // Each measurement gets its own dubious mask: a band might be valid
+  // in one measurement and non-linear in another, so we don't share the
+  // mask across series.
+  const series: SpectrumSeries[] = items.map((item, i) => {
+    const ref = items[0]
+    return {
+      label: `${item.metadata.room || item.metadata.site} / ${item.metadata.position}`,
+      values: ref
+        ? ref.result.bands.map((b, idx) => {
+            const matching = item.result.bands[idx]
+            return matching && matching.band.centre === b.band.centre
+              ? matching.reportedRtSeconds
+              : NaN
+          })
+        : [],
+      uncertain: ref
+        ? ref.result.bands.map((b, idx) => {
+            const matching = item.result.bands[idx]
+            return matching && matching.band.centre === b.band.centre
+              ? isBandDubious(matching)
+              : true
+          })
+        : [],
+      style: 'solid',
+      color: COMPARE_PALETTE[i % COMPARE_PALETTE.length],
+    }
+  })
 
   return (
     <div className="view view-home">

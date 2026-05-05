@@ -19,14 +19,14 @@ import {
 } from '../measurement/types'
 import { useMeasurementDraft } from '../measurement/DraftContext'
 import { useSettings } from '../settings/SettingsContext'
-import { analyzeImpulseResponse } from '../dsp/analyze'
+import { analyzeImpulseResponse, CRITICAL_FLAGS } from '../dsp/analyze'
 import { BANDS } from '../dsp/bands'
 import ResultsTable from '../components/ResultsTable'
 import DecaySection from '../components/DecaySection'
 import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
 import { saveMeasurement } from '../storage/measurements'
 import { useNavigate } from 'react-router-dom'
-import type { AnalysisResult } from '../dsp/analyze'
+import type { AnalysisResult, BandResult } from '../dsp/analyze'
 
 // The full measurement view: metadata form -> record sequence -> results.
 // Step 5 deliverable; decay-curve plotting (step 6) is omitted for now.
@@ -377,18 +377,32 @@ export default function Measurement() {
  * Build two series (RT solid + EDT dashed) for the single-measurement
  * spectrum plot. RT prefers T30/T20 reported value; EDT is always
  * computed. Both arrays align to the band centre order in the result.
- * Uncertain mask flags bands at the bottom (50-100 Hz) and top
- * (6.3-10 kHz) of the audio range where the phone mic response is
- * unreliable; the plot overlays red markers at those points.
+ *
+ * "Dubious" bands are flagged on the plot via the uncertain mask —
+ * the line breaks at them and red ring markers are drawn over their
+ * values. A band counts as dubious if either:
+ *   - phone mic response is unreliable in its frequency range
+ *     (50-100 Hz or 6.3-10 kHz), OR
+ *   - it has a critical analysis flag (clipped, non-linear). These
+ *     bands have a fitted T30 number but the regression failed the
+ *     R² threshold, so the value is technically reportable but visually
+ *     untrustworthy on a spectrum plot.
  */
 export function singleMeasurementSeries(result: AnalysisResult): SpectrumSeries[] {
   const rtValues = result.bands.map((b) => b.reportedRtSeconds)
   const edtValues = result.bands.map((b) => b.edtSeconds)
-  const uncertain = result.bands.map((b) => b.band.uncertain)
+  const uncertain = result.bands.map(isBandDubious)
   return [
     { label: 'T30/T20', values: rtValues, uncertain, style: 'solid', color: '#5fa8ff' },
     { label: 'EDT', values: edtValues, uncertain, style: 'dashed', color: '#f5d36a' },
   ]
+}
+
+/** True if a band's value should be flagged as dubious on the spectrum plot. */
+export function isBandDubious(b: BandResult): boolean {
+  if (b.band.uncertain) return true
+  for (const f of b.flags) if (CRITICAL_FLAGS.includes(f)) return true
+  return false
 }
 
 interface StatusProps {
