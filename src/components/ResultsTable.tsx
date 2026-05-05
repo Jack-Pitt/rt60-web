@@ -1,8 +1,11 @@
-import type { AnalysisResult, BandResult } from '../dsp/analyze'
+import { CRITICAL_FLAGS, type AnalysisResult, type BandResult } from '../dsp/analyze'
 
 // Per-band results table.
-// Columns per the brief: Band Hz | T30/T20/— | metric | EDT (s) | INR (dB) | R^2 | Flags.
-// Colour: green=T30, amber=T20, red=EDT-only/invalid. Uncertain bands hashed.
+// Columns: Band Hz | RT (s) | metric | EDT (s) | INR (dB) | R^2 | Flags.
+// Row colour:
+//   - any critical flag (clipped, non-linear, background-changed) -> RED override
+//   - else by metric: T30 dark green, T20 light green, EDT-only orange, invalid red
+//   - bands with uncertain mic response (50–100 Hz, 6.3–10 kHz) get a hashed background overlay
 
 interface Props {
   result: AnalysisResult
@@ -34,6 +37,7 @@ export default function ResultsTable({ result }: Props) {
         <span className="legend-swatch metric-T20" /> T20
         <span className="legend-swatch metric-EDT-only" /> EDT-only
         <span className="legend-swatch metric-invalid" /> invalid
+        <span className="legend-swatch metric-critical" /> critical issue
         <span className="legend-swatch uncertain" /> uncertain (mic response)
       </div>
     </div>
@@ -41,7 +45,9 @@ export default function ResultsTable({ result }: Props) {
 }
 
 function ResultRow({ b }: { b: BandResult }) {
-  const className = `metric-${b.reportedMetric}${b.band.uncertain ? ' uncertain' : ''}`
+  const hasCriticalFlag = b.flags.some((f) => CRITICAL_FLAGS.includes(f))
+  const baseClass = hasCriticalFlag ? 'metric-critical' : `metric-${b.reportedMetric}`
+  const className = `${baseClass}${b.band.uncertain ? ' uncertain' : ''}`
   return (
     <tr className={className}>
       <td>{formatHz(b.band.centre)}</td>

@@ -3,6 +3,7 @@ import Home from './views/Home'
 import Measurement from './views/Measurement'
 import Settings from './views/Settings'
 import { SettingsProvider } from './settings/SettingsContext'
+import { MeasurementDraftProvider } from './measurement/DraftContext'
 import './App.css'
 
 // Top-level layout: a header with the app name and a small nav,
@@ -31,15 +32,17 @@ export default function App() {
   // /#/measure instead of /measure but this avoids 404s on refresh.
   return (
     <SettingsProvider>
-      <HashRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="measure" element={<Measurement />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-        </Routes>
-      </HashRouter>
+      <MeasurementDraftProvider>
+        <HashRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="measure" element={<Measurement />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
+          </Routes>
+        </HashRouter>
+      </MeasurementDraftProvider>
     </SettingsProvider>
   )
 }

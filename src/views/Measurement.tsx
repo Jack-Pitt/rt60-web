@@ -8,6 +8,7 @@ import {
   MeasurementController,
   BACKGROUND_DURATION_SEC,
   POST_NOISE_DURATION_SEC,
+  COUNTDOWN_DURATION_SEC,
 } from '../measurement/MeasurementController'
 import {
   IMPULSE_SOURCE_LABELS,
@@ -16,6 +17,7 @@ import {
   type Metadata,
   type RecordingPhase,
 } from '../measurement/types'
+import { useMeasurementDraft } from '../measurement/DraftContext'
 import { useSettings } from '../settings/SettingsContext'
 import { analyzeImpulseResponse, type AnalysisResult } from '../dsp/analyze'
 import { BANDS } from '../dsp/bands'
@@ -33,23 +35,20 @@ interface PhaseDisplay {
   recentPeak?: number
 }
 
-const DEFAULT_METADATA: Metadata = {
-  site: '',
-  room: '',
-  position: '',
-  notes: '',
-  impulseSource: 'clapper',
-}
-
 export default function Measurement() {
   const { settings } = useSettings()
+  // Draft metadata lives in a context so it survives navigation away to
+  // Settings and back.
+  const { metadata, setMetadata } = useMeasurementDraft()
 
-  const [metadata, setMetadata] = useState<Metadata>(DEFAULT_METADATA)
   const [actual, setActual] = useState<ActualSettings | null>(null)
   const [phase, setPhase] = useState<UIPhase>('idle')
   const [phaseInfo, setPhaseInfo] = useState<PhaseDisplay>({})
   const [error, setError] = useState<string | null>(null)
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
+  // We hold the captured segments so the results screen can re-display
+  // metadata captured at recording time even if the form changes after.
+  const [resultMetadata, setResultMetadata] = useState<Metadata | null>(null)
 
   // We do NOT keep the AudioCapture or MeasurementController in React
   // state — they are imperative objects. Refs avoid stale-closure bugs
@@ -64,8 +63,8 @@ export default function Measurement() {
 
   const updateMeta = useCallback(
     <K extends keyof Metadata>(key: K, value: Metadata[K]) =>
-      setMetadata((m) => ({ ...m, [key]: value })),
-    [],
+      setMetadata({ ...metadata, [key]: value }),
+    [metadata, setMetadata],
   )
 
   // ---- recording lifecycle -------------------------------------------
@@ -73,6 +72,7 @@ export default function Measurement() {
   async function startMeasurement() {
     setError(null)
     setAnalysis(null)
+    setResultMetadata(null)
     setPhaseInfo({})
 
     const capture = new AudioCapture()
@@ -123,6 +123,10 @@ export default function Measurement() {
         {
           impulse: segments.impulse,
           noise: segments.noise,
+          // Pass the pre-impulse background so the analyzer can use the
+          // worse of pre/post for INR and flag bands where the room
+          // background changed mid-measurement.
+          preNoise: segments.background,
           sampleRate: segments.sampleRate,
           clipped: segments.clipped,
         },
@@ -132,6 +136,9 @@ export default function Measurement() {
           nonLinearR2Threshold: settings.nonLinearR2Threshold,
         },
       )
+      // Snapshot the metadata at analyse time so the results screen always
+      // shows what was used, even if the user edits the form afterwards.
+      setResultMetadata({ ...metadata })
       setAnalysis(result)
       setPhase('done')
     } catch (err) {
@@ -162,12 +169,13 @@ export default function Measurement() {
 
   // Results view takes over once analysis is done.
   if (phase === 'done' && analysis) {
+    const meta = resultMetadata ?? metadata
     return (
       <div className="view view-measure">
         <h2>Results</h2>
         <p className="view-stub">
-          {metadata.site} / {metadata.room} / pos {metadata.position} —{' '}
-          {IMPULSE_SOURCE_LABELS[metadata.impulseSource]}
+          {meta.site} / {meta.room} / pos {meta.position} —{' '}
+          {IMPULSE_SOURCE_LABELS[meta.impulseSource]}
         </p>
         {analysis.clipped && (
           <div className="alert alert-error">
@@ -283,6 +291,7 @@ export default function Measurement() {
           phaseInfo={phaseInfo}
           decayDurationSec={settings.decayDurationSec}
           triggerThresholdDb={settings.triggerThresholdDb}
+          sampleRate={actual?.sampleRate ?? 48000}
         />
       )}
 
@@ -324,18 +333,24 @@ interface StatusProps {
   phaseInfo: PhaseDisplay
   decayDurationSec: number
   triggerThresholdDb: number
+  sampleRate: number
 }
 
-function RecordingStatus({ phase, phaseInfo, decayDurationSec, triggerThresholdDb }: StatusProps) {
+function RecordingStatus({ phase, phaseInfo, decayDurationSec, triggerThresholdDb, sampleRate }: StatusProps) {
   let title = ''
   let subtitle = ''
   let big = ''
 
   switch (phase) {
+    case 'countdown':
+      title = 'Get ready'
+      subtitle = `Position the source and stand by — ${COUNTDOWN_DURATION_SEC} s`
+      big = remainingSeconds(phaseInfo, sampleRate)
+      break
     case 'background':
       title = 'Recording background'
       subtitle = `Stay quiet — ${BACKGROUND_DURATION_SEC} s`
-      big = remainingSeconds(phaseInfo)
+      big = remainingSeconds(phaseInfo, sampleRate)
       break
     case 'armed':
       title = 'Trigger impulse now'
@@ -345,12 +360,12 @@ function RecordingStatus({ phase, phaseInfo, decayDurationSec, triggerThresholdD
     case 'recording':
       title = 'Recording decay'
       subtitle = `Capturing ${decayDurationSec} s of decay`
-      big = remainingSeconds(phaseInfo)
+      big = remainingSeconds(phaseInfo, sampleRate)
       break
     case 'postnoise':
       title = 'Recording post-noise'
       subtitle = `Stay quiet — ${POST_NOISE_DURATION_SEC} s`
-      big = remainingSeconds(phaseInfo)
+      big = remainingSeconds(phaseInfo, sampleRate)
       break
     case 'analyzing':
       title = 'Analysing'
@@ -370,9 +385,9 @@ function RecordingStatus({ phase, phaseInfo, decayDurationSec, triggerThresholdD
   )
 }
 
-function remainingSeconds(info: PhaseDisplay): string {
+function remainingSeconds(info: PhaseDisplay, sampleRate: number): string {
   if (info.samplesTotal && info.samplesCaptured !== undefined) {
-    const remaining = (info.samplesTotal - info.samplesCaptured) / 48000
+    const remaining = (info.samplesTotal - info.samplesCaptured) / sampleRate
     return `${Math.max(0, remaining).toFixed(1)} s`
   }
   return ''

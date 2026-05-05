@@ -6,24 +6,30 @@
 // block and listens for state notifications.
 //
 // Phases:
-//   1) background  — capture 3 s of background noise. At the end we
+//   1) countdown   — 2 s "get ready" period after mic open. The worklet
+//                    is already streaming samples but we discard them so
+//                    the user has time to position the source.
+//   2) background  — capture 3 s of background noise. At the end we
 //                    compute its RMS and set the trigger threshold.
-//   2) armed       — listen for any sample whose magnitude exceeds the
+//   3) armed       — listen for any sample whose magnitude exceeds the
 //                    threshold. The most recent ~200 ms is kept in a
 //                    ring buffer so the impulse onset is not lost.
-//   3) recording   — once triggered, capture decayDurationSec of the
+//   4) recording   — once triggered, capture decayDurationSec of the
 //                    decay (with the pre-trigger ring buffer prepended).
-//   4) postnoise   — capture 2 s of background after the decay so the
-//                    noise floor can be measured separately.
-//   5) done        — hand all three buffers (impulse, noise, background)
+//   5) postnoise   — capture 3 s of background after the decay so the
+//                    noise floor can be measured separately, AND so we
+//                    can detect if the room got noisier between pre and
+//                    post (flag 'background-changed').
+//   6) done        — hand all three buffers (impulse, noise, background)
 //                    to the caller via onComplete.
 //
 // Clipping flag is OR'd across every block.
 
 import type { CapturedSegments, RecordingPhase } from './types'
 
+export const COUNTDOWN_DURATION_SEC = 2
 export const BACKGROUND_DURATION_SEC = 3
-export const POST_NOISE_DURATION_SEC = 2
+export const POST_NOISE_DURATION_SEC = 3
 export const PRE_TRIGGER_DURATION_SEC = 0.2
 
 export interface ControllerOptions {
@@ -52,6 +58,10 @@ export class MeasurementController {
   private phase: RecordingPhase = 'idle'
   private clipped = false
 
+  // Countdown phase: number of samples we still need to discard before
+  // background capture begins.
+  private countdownSamplesRemaining = 0
+
   // Background phase storage.
   private backgroundBuf: Float32Array
   private backgroundIdx = 0
@@ -78,6 +88,7 @@ export class MeasurementController {
   constructor(options: ControllerOptions) {
     this.opts = options
     const Fs = options.sampleRate
+    this.countdownSamplesRemaining = Math.round(Fs * COUNTDOWN_DURATION_SEC)
     this.backgroundBuf = new Float32Array(Math.round(Fs * BACKGROUND_DURATION_SEC))
     this.ringBuf = new Float32Array(Math.round(Fs * PRE_TRIGGER_DURATION_SEC))
     this.impulseBuf = new Float32Array(
@@ -93,7 +104,10 @@ export class MeasurementController {
       this.opts.onError('Controller already started')
       return
     }
-    this.transition('background', { samplesTotal: this.backgroundBuf.length })
+    this.transition('countdown', {
+      samplesTotal: this.countdownSamplesRemaining,
+      samplesCaptured: 0,
+    })
   }
 
   /** Cancel the current measurement and return to idle. */
@@ -112,6 +126,9 @@ export class MeasurementController {
     if (blockClipped) this.clipped = true
 
     switch (this.phase) {
+      case 'countdown':
+        this.handleCountdown(block)
+        break
       case 'background':
         this.handleBackground(block)
         break
@@ -127,6 +144,28 @@ export class MeasurementController {
       // 'idle' / 'analyzing' / 'done' / 'error' — drop samples.
       default:
         break
+    }
+  }
+
+  private handleCountdown(block: Float32Array) {
+    const consumed = Math.min(block.length, this.countdownSamplesRemaining)
+    this.countdownSamplesRemaining -= consumed
+
+    this.maybeReportProgress({
+      samplesTotal: Math.round(this.opts.sampleRate * COUNTDOWN_DURATION_SEC),
+      samplesCaptured:
+        Math.round(this.opts.sampleRate * COUNTDOWN_DURATION_SEC) - this.countdownSamplesRemaining,
+    })
+
+    if (this.countdownSamplesRemaining <= 0) {
+      this.transition('background', {
+        samplesTotal: this.backgroundBuf.length,
+        samplesCaptured: 0,
+      })
+      // Carry leftover samples in this block into the background phase.
+      if (consumed < block.length) {
+        this.handleBackground(block.subarray(consumed))
+      }
     }
   }
 

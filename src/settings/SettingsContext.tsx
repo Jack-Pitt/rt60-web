@@ -19,14 +19,16 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  decayDurationSec: 6,
+  decayDurationSec: 3,
   triggerThresholdDb: 30,
   inrThresholds: { ...DEFAULT_INR_THRESHOLDS },
   nonLinearR2Threshold: 0.95,
   enabledBandCentres: BANDS.map((b) => b.centre),
 }
 
-const STORAGE_KEY = 'rt60.settings.v1'
+// Bumped to v2 when default decay duration changed from 6 to 3, so users
+// pick up the new default instead of being stuck on the saved old one.
+const STORAGE_KEY = 'rt60.settings.v2'
 
 interface Ctx {
   settings: Settings

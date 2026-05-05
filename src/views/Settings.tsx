@@ -48,23 +48,23 @@ export default function Settings() {
       </section>
 
       <section className="settings-section">
-        <label className="settings-label">
-          Trigger threshold (dB above background)
-          <input
-            type="number"
-            min={6}
-            max={60}
-            step={1}
-            value={settings.triggerThresholdDb}
-            onChange={(e) =>
-              update('triggerThresholdDb', clamp(Number(e.target.value), 6, 60))
-            }
-          />
-        </label>
+        <h3>Trigger threshold (dB above background)</h3>
         <p className="muted">
           Impulse is detected when any sample is this many dB above the just-measured
           background RMS. Default 30 dB.
         </p>
+        <div className="threshold-chip-row">
+          {[10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60].map((db) => (
+            <button
+              key={db}
+              type="button"
+              className={`threshold-chip ${settings.triggerThresholdDb === db ? 'on' : ''}`}
+              onClick={() => update('triggerThresholdDb', db)}
+            >
+              {db}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="settings-section">

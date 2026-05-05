@@ -206,6 +206,11 @@
   text-align: center;
 }
 
+.status-card.status-countdown {
+  background: #131a26;
+  border-color: #2a4f7a;
+}
+
 .status-card.status-armed {
   background: #2b1c0d;
   border-color: #6b4d12;
@@ -259,6 +264,31 @@
 .settings-section h3 {
   margin: 0 0 8px;
   font-size: 16px;
+}
+
+.threshold-chip-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.threshold-chip {
+  padding: 12px 4px;
+  background: transparent;
+  border: 1px solid #3a3f4d;
+  color: #c4c8d2;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.threshold-chip.on {
+  background: #2a64f5;
+  border-color: #2a64f5;
+  color: white;
 }
 
 .band-quick-buttons {
@@ -352,10 +382,14 @@
   font-weight: 700;
 }
 
-.results-table tr.metric-T30 td { background: rgba(42, 107, 47, 0.18); }
-.results-table tr.metric-T20 td { background: rgba(180, 120, 24, 0.20); }
-.results-table tr.metric-EDT-only td { background: rgba(180, 60, 60, 0.18); }
-.results-table tr.metric-invalid td { background: rgba(120, 30, 30, 0.30); color: #ddd; }
+/* Row colour by reported metric. T30 = dark green, T20 = lighter green,
+   EDT-only = orange, invalid = dark red. Critical-flag bands override
+   to bright red regardless of the underlying metric. */
+.results-table tr.metric-T30 td { background: rgba(28, 110, 50, 0.32); }
+.results-table tr.metric-T20 td { background: rgba(80, 170, 90, 0.22); }
+.results-table tr.metric-EDT-only td { background: rgba(220, 130, 30, 0.22); }
+.results-table tr.metric-invalid td { background: rgba(140, 35, 35, 0.32); color: #f0d8d8; }
+.results-table tr.metric-critical td { background: rgba(220, 50, 50, 0.40); color: #fff0f0; }
 
 .results-table tr.uncertain td {
   background-image: repeating-linear-gradient(
@@ -402,10 +436,11 @@
   border-radius: 3px;
   vertical-align: middle;
 }
-.legend-swatch.metric-T30 { background: rgba(42, 107, 47, 0.5); }
-.legend-swatch.metric-T20 { background: rgba(180, 120, 24, 0.5); }
-.legend-swatch.metric-EDT-only { background: rgba(180, 60, 60, 0.5); }
-.legend-swatch.metric-invalid { background: rgba(120, 30, 30, 0.7); }
+.legend-swatch.metric-T30 { background: rgba(28, 110, 50, 0.7); }
+.legend-swatch.metric-T20 { background: rgba(80, 170, 90, 0.6); }
+.legend-swatch.metric-EDT-only { background: rgba(220, 130, 30, 0.7); }
+.legend-swatch.metric-invalid { background: rgba(140, 35, 35, 0.7); }
+.legend-swatch.metric-critical { background: rgba(220, 50, 50, 0.85); }
 .legend-swatch.uncertain {
   background-image: repeating-linear-gradient(
     45deg,

@@ -20,10 +20,11 @@ export interface Metadata {
 /** Phases of the recording state machine. */
 export type RecordingPhase =
   | 'idle'
+  | 'countdown'    // 2 s "get ready" countdown before background capture
   | 'background'   // capturing 3 s of background noise
   | 'armed'        // background captured, waiting for impulse
   | 'recording'    // impulse triggered, capturing decay
-  | 'postnoise'    // capturing 2 s of post-decay noise
+  | 'postnoise'    // capturing 3 s of post-decay noise
   | 'analyzing'    // running the DSP
   | 'done'         // results available
   | 'error'        // a fatal problem stopped the run
