@@ -89,16 +89,22 @@ export interface AnalysisResult {
   clipped: boolean
 }
 
+export interface InrThresholds {
+  t30: number
+  t20: number
+  edtOnly: number
+}
+
 /** Decision thresholds per the brief, exported so the UI/Settings can reference them. */
-export const DEFAULT_INR_THRESHOLDS = {
+export const DEFAULT_INR_THRESHOLDS: InrThresholds = {
   t30: 35,
   t20: 25,
   edtOnly: 15,
-} as const
+}
 
 export interface AnalyzeOptions {
   /** Override the default INR thresholds. Useful for the Settings view. */
-  inrThresholds?: typeof DEFAULT_INR_THRESHOLDS
+  inrThresholds?: InrThresholds
   /** Subset of bands to analyse. Defaults to every band in BANDS. */
   bands?: ReadonlyArray<Band>
   /** R^2 below which we set the non-linear flag. */
@@ -127,7 +133,7 @@ export function analyzeImpulseResponse(
 function analyseBand(
   input: AnalysisInput,
   band: Band,
-  thresholds: typeof DEFAULT_INR_THRESHOLDS,
+  thresholds: InrThresholds,
   r2Floor: number,
 ): BandResult {
   // 1) Design and apply the bandpass filter.

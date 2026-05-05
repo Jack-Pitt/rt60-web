@@ -2,6 +2,7 @@ import { HashRouter, Routes, Route, NavLink, Outlet } from 'react-router-dom'
 import Home from './views/Home'
 import Measurement from './views/Measurement'
 import Settings from './views/Settings'
+import { SettingsProvider } from './settings/SettingsContext'
 import './App.css'
 
 // Top-level layout: a header with the app name and a small nav,
@@ -29,14 +30,16 @@ export default function App() {
   // GitHub Pages without server-side SPA fallback. URLs look like
   // /#/measure instead of /measure but this avoids 404s on refresh.
   return (
-    <HashRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="measure" element={<Measurement />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </HashRouter>
+    <SettingsProvider>
+      <HashRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="measure" element={<Measurement />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+        </Routes>
+      </HashRouter>
+    </SettingsProvider>
   )
 }
