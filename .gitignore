@@ -25,3 +25,12 @@ dist-ssr
 
 # Local Claude Code settings (per-machine, not shared with the repo)
 .claude/
+
+# Screenshots dropped into the project folder for review (not source)
+*.png
+*.jpg
+*.jpeg
+*.heic
+*.webp
+!public/**
+!src/**
