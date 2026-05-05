@@ -11,6 +11,7 @@ import DecaySection from '../components/DecaySection'
 import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
 import { singleMeasurementSeries, isBandDubious } from './Measurement'
 import { useSettings } from '../settings/SettingsContext'
+import { buildCsv, buildJson, buildFilename, saveTextAsFile } from '../storage/export'
 
 // History view — list of saved measurements, with two interaction modes:
 //   - Default: tap a row to open its full results screen.
@@ -122,6 +123,20 @@ export default function Home() {
           />
           <DecaySection result={item.result} />
           <ResultsTable result={item.result} />
+          <div className="capture-controls capture-controls-row">
+            <button
+              className="primary-btn secondary-btn"
+              onClick={() => exportMeasurement(item, 'csv', setError)}
+            >
+              Export CSV
+            </button>
+            <button
+              className="primary-btn secondary-btn"
+              onClick={() => exportMeasurement(item, 'json', setError)}
+            >
+              Export JSON
+            </button>
+          </div>
           <div className="capture-controls">
             <button className="primary-btn primary-btn-stop" onClick={() => handleDelete(item.id)}>
               Delete this measurement
@@ -201,15 +216,19 @@ interface ComparisonProps {
   maxRtSec: number
 }
 
+// Palette deliberately excludes reds and oranges — those would clash
+// with the dubious-marker red used to flag uncertain bands on the same
+// plot. First four entries are the most distinguishable (typical use:
+// 2-4 measurements compared at a time).
 const COMPARE_PALETTE = [
-  '#5fa8ff',
-  '#ff7e6b',
-  '#5fd97c',
-  '#f5d36a',
-  '#c879f5',
-  '#79e0e0',
-  '#ffa05c',
-  '#a896e0',
+  '#5fa8ff', // blue
+  '#4ade80', // green
+  '#facc15', // yellow
+  '#c084fc', // purple
+  '#22d3ee', // cyan
+  '#f472b6', // pink (magenta-leaning, away from red)
+  '#a3e635', // lime
+  '#94a3b8', // slate grey
 ]
 
 function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
@@ -298,6 +317,25 @@ interface RowProps {
   selected: boolean
   onOpen: () => void
   onDelete: () => void
+}
+
+async function exportMeasurement(
+  item: SavedMeasurement,
+  kind: 'csv' | 'json',
+  setError: (msg: string) => void,
+) {
+  try {
+    const content =
+      kind === 'csv'
+        ? buildCsv(item.metadata, item.result, item.timestamp)
+        : buildJson(item.metadata, item.result, item.timestamp)
+    const filename = buildFilename(item.metadata, item.timestamp, kind)
+    const mime = kind === 'csv' ? 'text/csv' : 'application/json'
+    await saveTextAsFile(content, filename, mime)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    setError('Export failed: ' + msg)
+  }
 }
 
 function HistoryRow({ item, compareMode, selected, onOpen, onDelete }: RowProps) {
