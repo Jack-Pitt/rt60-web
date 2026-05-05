@@ -1,0 +1,87 @@
+/* Mobile-first layout. Optimised for one-handed use on iPhone:
+   large tap targets, high contrast, generous spacing. */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: #0f1115;
+  color: #f4f4f5;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #181b22;
+  border-bottom: 1px solid #2a2e38;
+  padding: env(safe-area-inset-top) 16px 0;
+}
+
+.app-title {
+  margin: 12px 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.app-nav {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.app-nav a {
+  flex: 1;
+  text-align: center;
+  padding: 12px 8px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #c4c8d2;
+  background: transparent;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.app-nav a.active {
+  background: #2a64f5;
+  color: white;
+}
+
+.app-main {
+  flex: 1;
+  padding: 20px 16px calc(env(safe-area-inset-bottom) + 24px);
+}
+
+.view {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.view h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.view-stub {
+  color: #9aa1ad;
+  font-size: 15px;
+  margin: 12px 0 24px;
+}
+
+.primary-btn {
+  display: inline-block;
+  padding: 16px 24px;
+  background: #2a64f5;
+  color: white;
+  font-weight: 700;
+  font-size: 17px;
+  border-radius: 12px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.primary-btn:active {
+  background: #1f4dc4;
+}

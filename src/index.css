@@ -1,0 +1,34 @@
+/* Global resets and base typography. App-level layout lives in App.css. */
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent iOS Safari from auto-zooming when an input is focused. */
+  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: #0f1115;
+  color: #f4f4f5;
+  /* Disable the rubber-band overscroll glow that can show through the dark UI. */
+  overscroll-behavior-y: none;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
