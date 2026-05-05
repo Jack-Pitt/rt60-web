@@ -14,7 +14,7 @@ function Layout() {
       <header className="app-header">
         <h1 className="app-title">RT60</h1>
         <nav className="app-nav">
-          <NavLink to="/" end>Home</NavLink>
+          <NavLink to="/" end>History</NavLink>
           <NavLink to="/measure">Measure</NavLink>
           <NavLink to="/settings">Settings</NavLink>
         </nav>

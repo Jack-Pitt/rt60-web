@@ -37,21 +37,16 @@ export type ResultFlag =
   | 'non-linear'
   | 'uncertain-freq'
   | 'low-INR'
-  | 'background-changed' // pre vs post-decay background differ by > BACKGROUND_DELTA_DB
 
 /** Critical flags whose presence overrides the row's metric colour to red.
- *  A measurement that was clipped, has a non-linear decay, or had the
- *  background change between pre- and post-capture is unreliable
- *  regardless of which T-metric was nominally reportable. */
+ *  A measurement that was clipped or has a non-linear decay is unreliable
+ *  regardless of which T-metric was nominally reportable.
+ *  (low-INR is implied by EDT-only or invalid metric, so isn't critical
+ *  on its own.) */
 export const CRITICAL_FLAGS: ReadonlyArray<ResultFlag> = [
   'clipped',
   'non-linear',
-  'background-changed',
 ]
-
-/** Difference in dB between pre- and post-decay band noise above which we
- *  flag the band as 'background-changed'. */
-export const BACKGROUND_DELTA_DB = 6
 
 export interface BandResult {
   band: Band
@@ -170,9 +165,9 @@ function analyseBand(
 
   // 3) Noise floor and INR. When a pre-impulse background is supplied, take
   //    the louder of pre vs post — the impulse is only as detectable as the
-  //    worst of the two backgrounds. Also flag the band if pre/post differ
-  //    by more than BACKGROUND_DELTA_DB so the user knows something
-  //    happened in the room mid-measurement.
+  //    worst of the two backgrounds. (We don't flag "background changed"
+  //    separately: if either background dragged INR below the threshold
+  //    the existing INR-tier decision logic catches it.)
   const peak = peakAbs(filteredImpulse)
   const noiseRmsPost = rms(filteredNoise)
   const noiseRmsPre = filteredPreNoise ? rms(filteredPreNoise) : noiseRmsPost
@@ -180,12 +175,6 @@ function analyseBand(
   const inr = inrDb(peak, noiseRmsEffective)
   const noiseFloorDb =
     peak > 0 && noiseRmsEffective > 0 ? 20 * Math.log10(noiseRmsEffective / peak) : -Infinity
-
-  // dB difference between pre and post (positive when post is louder).
-  let backgroundDeltaDb = 0
-  if (filteredPreNoise && noiseRmsPre > 0 && noiseRmsPost > 0) {
-    backgroundDeltaDb = 20 * Math.log10(noiseRmsPost / noiseRmsPre)
-  }
 
   // Always compute EDT (0 to -10 dB).
   const edt = fitDecayRT(edcDb, input.sampleRate, 0, -10)
@@ -227,7 +216,6 @@ function analyseBand(
   if (band.uncertain) flags.push('uncertain-freq')
   if (reportedMetric === 'EDT-only') flags.push('low-INR')
   if (Number.isFinite(reportedR2) && reportedR2 < r2Floor) flags.push('non-linear')
-  if (Math.abs(backgroundDeltaDb) > BACKGROUND_DELTA_DB) flags.push('background-changed')
 
   return {
     band,

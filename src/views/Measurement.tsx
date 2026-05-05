@@ -19,9 +19,11 @@ import {
 } from '../measurement/types'
 import { useMeasurementDraft } from '../measurement/DraftContext'
 import { useSettings } from '../settings/SettingsContext'
-import { analyzeImpulseResponse, type AnalysisResult } from '../dsp/analyze'
+import { analyzeImpulseResponse } from '../dsp/analyze'
 import { BANDS } from '../dsp/bands'
 import ResultsTable from '../components/ResultsTable'
+import { saveMeasurement } from '../storage/measurements'
+import { useNavigate } from 'react-router-dom'
 
 // The full measurement view: metadata form -> record sequence -> results.
 // Step 5 deliverable; decay-curve plotting (step 6) is omitted for now.
@@ -37,18 +39,16 @@ interface PhaseDisplay {
 
 export default function Measurement() {
   const { settings } = useSettings()
-  // Draft metadata lives in a context so it survives navigation away to
-  // Settings and back.
-  const { metadata, setMetadata } = useMeasurementDraft()
+  // Draft metadata + unsaved analysis live in a context so they survive
+  // navigation between Measure / History / Settings.
+  const { metadata, setMetadata, unsaved, setUnsaved } = useMeasurementDraft()
+  const navigate = useNavigate()
 
   const [actual, setActual] = useState<ActualSettings | null>(null)
   const [phase, setPhase] = useState<UIPhase>('idle')
   const [phaseInfo, setPhaseInfo] = useState<PhaseDisplay>({})
   const [error, setError] = useState<string | null>(null)
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
-  // We hold the captured segments so the results screen can re-display
-  // metadata captured at recording time even if the form changes after.
-  const [resultMetadata, setResultMetadata] = useState<Metadata | null>(null)
+  const [saving, setSaving] = useState(false)
 
   // We do NOT keep the AudioCapture or MeasurementController in React
   // state — they are imperative objects. Refs avoid stale-closure bugs
@@ -71,8 +71,7 @@ export default function Measurement() {
 
   async function startMeasurement() {
     setError(null)
-    setAnalysis(null)
-    setResultMetadata(null)
+    setUnsaved(null)
     setPhaseInfo({})
 
     const capture = new AudioCapture()
@@ -136,10 +135,10 @@ export default function Measurement() {
           nonLinearR2Threshold: settings.nonLinearR2Threshold,
         },
       )
-      // Snapshot the metadata at analyse time so the results screen always
-      // shows what was used, even if the user edits the form afterwards.
-      setResultMetadata({ ...metadata })
-      setAnalysis(result)
+      // Stash the unsaved analysis + a snapshot of the metadata into the
+      // shared draft context, so navigating to History/Settings and back
+      // doesn't lose it. The user must Save or Discard explicitly.
+      setUnsaved({ metadata: { ...metadata }, analysis: result })
       setPhase('done')
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -159,17 +158,37 @@ export default function Measurement() {
     captureRef.current = null
     controllerRef.current = null
     if (cap) await cap.stop()
-    setAnalysis(null)
+    setUnsaved(null)
     setPhase('idle')
     setPhaseInfo({})
     setError(null)
   }
 
+  async function saveToHistory() {
+    if (!unsaved) return
+    setSaving(true)
+    try {
+      await saveMeasurement(unsaved.metadata, unsaved.analysis)
+      setUnsaved(null)
+      setPhase('idle')
+      // Navigate to History so the user can see the saved row immediately.
+      navigate('/')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError('Save failed: ' + msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // ---- render --------------------------------------------------------
 
-  // Results view takes over once analysis is done.
-  if (phase === 'done' && analysis) {
-    const meta = resultMetadata ?? metadata
+  // Results view takes over while there's an unsaved analysis. Persists
+  // through tab navigation thanks to the draft context — user must Save
+  // or Discard to leave this screen.
+  if (unsaved && (phase === 'done' || phase === 'idle')) {
+    const meta = unsaved.metadata
+    const analysis = unsaved.analysis
     return (
       <div className="view view-measure">
         <h2>Results</h2>
@@ -183,14 +202,30 @@ export default function Measurement() {
           </div>
         )}
         <ResultsTable result={analysis} />
-        <div className="capture-controls">
-          <button className="primary-btn primary-btn-stop" onClick={discardAndRetry}>
-            Discard and retry
+        {error && (
+          <div className="alert alert-error">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+        <div className="capture-controls capture-controls-row">
+          <button
+            className="primary-btn primary-btn-stop"
+            onClick={discardAndRetry}
+            disabled={saving}
+          >
+            Discard
+          </button>
+          <button
+            className="primary-btn"
+            onClick={saveToHistory}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Save to history'}
           </button>
         </div>
         <p className="muted">
-          Save to history and CSV/JSON export are added in steps 7–8. For now
-          you can read the table and re-measure.
+          Save stores the measurement on this device only (no cloud).
+          CSV/JSON export comes in step 8.
         </p>
       </div>
     )

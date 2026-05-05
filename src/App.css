@@ -99,6 +99,11 @@
   margin: 16px 0 20px;
 }
 
+.capture-controls-row .primary-btn {
+  flex: 1;
+  text-align: center;
+}
+
 .alert {
   padding: 12px 14px;
   border-radius: 10px;
@@ -441,6 +446,77 @@
 .legend-swatch.metric-EDT-only { background: rgba(220, 130, 30, 0.7); }
 .legend-swatch.metric-invalid { background: rgba(140, 35, 35, 0.7); }
 .legend-swatch.metric-critical { background: rgba(220, 50, 50, 0.85); }
+
+/* ===== History list ===== */
+
+.history-list {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item {
+  display: flex;
+  align-items: stretch;
+  background: #181b22;
+  border: 1px solid #2a2e38;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.history-open {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f4f4f5;
+  text-align: left;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-open:active {
+  background: #1c2230;
+}
+
+.history-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.history-meta {
+  font-size: 12px;
+  color: #9aa1ad;
+}
+
+.history-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #c4c8d2;
+}
+
+.history-delete {
+  width: 44px;
+  background: transparent;
+  border: none;
+  border-left: 1px solid #2a2e38;
+  color: #d23a3a;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.history-delete:active {
+  background: #2a1717;
+}
 .legend-swatch.uncertain {
   background-image: repeating-linear-gradient(
     45deg,
