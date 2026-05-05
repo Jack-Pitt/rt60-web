@@ -529,49 +529,6 @@
   font-size: 16px;
 }
 
-.decay-section-subtitle {
-  margin: 16px 0 8px;
-  font-size: 14px;
-  color: #9aa1ad;
-  font-weight: 600;
-}
-
-/* Selector chips for choosing which band fills the full plot */
-.band-selector {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
-  gap: 4px;
-  margin-bottom: 10px;
-}
-
-.band-selector-chip {
-  padding: 8px 4px;
-  background: transparent;
-  border: 1px solid #3a3f4d;
-  color: #9aa1ad;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
-}
-
-.band-selector-chip.on {
-  background: #2a64f5;
-  border-color: #2a64f5;
-  color: white;
-}
-
-.band-selector-chip.uncertain {
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent 0,
-    transparent 4px,
-    rgba(255, 255, 255, 0.06) 4px,
-    rgba(255, 255, 255, 0.06) 8px
-  );
-}
-
 /* Header above the full-size plot: band centre + key stats */
 .decay-header {
   display: flex;
@@ -587,6 +544,11 @@
 .decay-header-band {
   font-size: 16px;
   font-weight: 700;
+}
+
+.decay-header-sub {
+  font-size: 12px;
+  color: #9aa1ad;
 }
 
 .decay-header-stats {
@@ -620,65 +582,67 @@
   width: 100%;
 }
 
-/* Small-multiples grid */
-.decay-grid {
+/* Selector buttons under the plot. Coloured by reportedMetric so the
+   user can scan which bands need checking at a glance. */
+.decay-buttons {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 4px;
+  margin: 10px 0;
 }
 
-.decay-grid-item {
-  background: #0c0e13;
-  border: 1px solid #2a2e38;
-  border-radius: 8px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-}
-
-.decay-grid-item.selected {
-  border-color: #2a64f5;
-}
-
-.decay-grid-item.uncertain {
-  background-image: repeating-linear-gradient(
-    45deg,
-    #0c0e13 0,
-    #0c0e13 5px,
-    rgba(255, 255, 255, 0.04) 5px,
-    rgba(255, 255, 255, 0.04) 10px
-  );
-}
-
-.decay-grid-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
+.decay-button {
+  padding: 10px 4px;
+  border: 1px solid #3a3f4d;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 700;
-  margin-bottom: 4px;
-  padding: 0 2px;
-}
-
-.decay-grid-metric {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 999px;
+  cursor: pointer;
+  text-align: center;
   background: #2a2e38;
   color: #c4c8d2;
 }
 
-.decay-grid-metric.metric-T30 { background: rgba(28, 110, 50, 0.6); color: #d8f0db; }
-.decay-grid-metric.metric-T20 { background: rgba(80, 170, 90, 0.55); color: #e6f5e6; }
-.decay-grid-metric.metric-EDT-only { background: rgba(220, 130, 30, 0.55); color: #ffe7c8; }
-.decay-grid-metric.metric-invalid { background: rgba(140, 35, 35, 0.7); color: #f3d8d8; }
+.decay-button.metric-T30 { background: rgba(28, 110, 50, 0.65); color: #ffffff; border-color: rgba(40, 130, 60, 0.85); }
+.decay-button.metric-T20 { background: rgba(80, 170, 90, 0.55); color: #ffffff; border-color: rgba(100, 180, 110, 0.7); }
+.decay-button.metric-EDT-only { background: rgba(220, 130, 30, 0.6); color: #ffffff; border-color: rgba(230, 150, 50, 0.8); }
+.decay-button.metric-invalid { background: rgba(140, 35, 35, 0.7); color: #ffeaea; border-color: rgba(170, 50, 50, 0.85); }
+.decay-button.metric-critical { background: rgba(220, 50, 50, 0.85); color: #fff0f0; border-color: rgba(240, 80, 80, 1); }
 
-.decay-plot.thumb {
-  display: block;
-  cursor: pointer;
-  width: 100%;
+/* Distinct overall button — neutral blue so it doesn't compete with metric colours. */
+.decay-button-overall {
+  background: rgba(42, 100, 245, 0.6);
+  color: white;
+  border-color: rgba(60, 120, 255, 0.9);
+  grid-column: span 2;
 }
+
+/* "Selected" emphasis: extra-bright outline + slight inset shadow. */
+.decay-button.on {
+  outline: 2px solid #f4f4f5;
+  outline-offset: -2px;
+}
+
+.decay-button.uncertain {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 5px,
+    rgba(0, 0, 0, 0.20) 5px,
+    rgba(0, 0, 0, 0.20) 10px
+  );
+}
+
+.decay-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: #9aa1ad;
+  margin-top: 6px;
+}
+
+.decay-legend .legend-swatch.decay-button-overall { background: rgba(42, 100, 245, 0.6); }
 
 /* Override uPlot's default axis stroke to fit the dark theme */
 .u-axis text { fill: #9aa1ad !important; }

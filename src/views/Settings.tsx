@@ -35,16 +35,16 @@ export default function Settings() {
           Decay capture window (seconds)
           <input
             type="number"
-            min={3}
+            min={1}
             max={10}
             step={0.5}
             value={settings.decayDurationSec}
             onChange={(e) =>
-              update('decayDurationSec', clamp(Number(e.target.value), 3, 10))
+              update('decayDurationSec', clamp(Number(e.target.value), 1, 10))
             }
           />
         </label>
-        <p className="muted">How long to record after the impulse triggers. 3–10 s.</p>
+        <p className="muted">How long to record after the impulse triggers. 1–10 s. Default 2 s — bump up if you're measuring a large reverberant room.</p>
       </section>
 
       <section className="settings-section">

@@ -1,50 +1,52 @@
 import { useEffect, useRef } from 'react'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
-import type { BandResult } from '../dsp/analyze'
 
-// Single-band Schroeder energy-decay curve plot.
+// Single-pane Schroeder energy-decay curve plot.
 //
 // Layers (bottom to top):
 //   - The EDC line (cyan-ish), the primary signal.
-//   - The regression line for the reported metric (yellow), drawn ONLY
-//     over the regression range so the user sees what was actually fitted.
+//   - The regression line (yellow), drawn ONLY over the regression range
+//     so the user sees what was actually fitted. Optional.
 //   - Horizontal reference lines at the regression dB endpoints (e.g.
-//     -5 and -35 for T30) — drawn as additional flat-y series.
+//     -5 and -35 for T30) — drawn as dashed flat-y series. Optional.
 //   - Horizontal noise plateau line (red dashed) — where the EDC would
-//     plateau if the IR window contained only noise.
+//     plateau if the IR window contained only noise. Optional.
 //
 // Axes:
 //   - X: time in seconds
 //   - Y: dB rel peak. Range chosen so 0 dB is at the top and we see down
-//     to 5 dB below the noise plateau (or -60 dB, whichever is lower).
+//     to a few dB below the noise plateau (or -60 dB, whichever is lower).
 //   - Y gridlines every 5 dB per the brief.
 
-interface Props {
-  band: BandResult
-  /** Visual size. Defaults to "full" for the main plot; "thumb" for small
-   *  multiples disables most chrome and uses a denser layout. */
-  variant?: 'full' | 'thumb'
-  /** Optional click handler — used by the small-multiples grid. */
-  onClick?: () => void
+export interface DecayPlotProps {
+  edcDb: Float32Array
+  sampleRate: number
+  /** Optional regression overlay (slope dB/s, intercept dB). */
+  regression?: {
+    slope: number
+    intercept: number
+    sampleStart: number
+    sampleEnd: number
+  } | null
+  /** Optional dB endpoints of the regression range, e.g. [-5, -35]. */
+  dbRange?: [number, number] | null
+  /** Optional noise plateau line in dB rel peak. */
+  noisePlateauDb?: number
 }
 
-export default function DecayPlot({ band, variant = 'full', onClick }: Props) {
+export default function DecayPlot(props: DecayPlotProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const plotRef = useRef<uPlot | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
+    const { data, yMin, seriesNames } = buildPlotData(props)
 
-    const { data, yMin } = buildPlotData(band)
-
-    const isThumb = variant === 'thumb'
     const opts: uPlot.Options = {
       width: containerRef.current.clientWidth || 320,
-      height: isThumb ? 90 : 280,
-      // Disable interactivity on thumbnails (small for taps anyway).
-      cursor: isThumb ? { show: false } : { drag: { x: false, y: false } },
-      legend: { show: !isThumb },
+      height: 280,
+      cursor: { drag: { x: false, y: false } },
+      legend: { show: true },
       scales: {
         x: { time: false },
         y: { auto: false, range: [yMin, 5] },
@@ -54,48 +56,45 @@ export default function DecayPlot({ band, variant = 'full', onClick }: Props) {
           stroke: '#9aa1ad',
           grid: { stroke: '#2a2e38', width: 1 },
           ticks: { stroke: '#2a2e38' },
-          label: isThumb ? undefined : 'Time (s)',
-          labelSize: isThumb ? 0 : 26,
-          size: isThumb ? 18 : 36,
+          label: 'Time (s)',
+          labelSize: 26,
+          size: 36,
           font: '11px -apple-system, sans-serif',
-          show: true,
         },
         {
           stroke: '#9aa1ad',
           grid: { stroke: '#2a2e38', width: 1 },
           ticks: { stroke: '#2a2e38' },
-          label: isThumb ? undefined : 'Level (dB rel peak)',
-          labelSize: isThumb ? 0 : 26,
-          size: isThumb ? 28 : 50,
+          label: 'Level (dB rel peak)',
+          labelSize: 26,
+          size: 50,
           font: '11px -apple-system, sans-serif',
-          // Force ticks at every 5 dB.
           incrs: [5],
-          show: true,
         },
       ],
       series: [
-        {}, // x
+        {},
         {
-          label: 'EDC',
+          label: seriesNames.edc,
           stroke: '#5fa8ff',
-          width: isThumb ? 1 : 2,
+          width: 2,
           points: { show: false },
         },
         {
-          label: 'Regression',
+          label: seriesNames.regression,
           stroke: '#f5d36a',
-          width: isThumb ? 1 : 2,
+          width: 2,
           points: { show: false },
         },
         {
-          label: `${band.reportedDbRange[0]} dB`,
+          label: seriesNames.refUpper,
           stroke: '#7e8694',
           width: 1,
           dash: [4, 4],
           points: { show: false },
         },
         {
-          label: `${band.reportedDbRange[1]} dB`,
+          label: seriesNames.refLower,
           stroke: '#7e8694',
           width: 1,
           dash: [4, 4],
@@ -112,15 +111,10 @@ export default function DecayPlot({ band, variant = 'full', onClick }: Props) {
     }
 
     const plot = new uPlot(opts, data, containerRef.current)
-    plotRef.current = plot
 
-    // Re-fit on container resize (orientation change, page reflow).
     const ro = new ResizeObserver(() => {
       if (containerRef.current) {
-        plot.setSize({
-          width: containerRef.current.clientWidth,
-          height: isThumb ? 90 : 280,
-        })
+        plot.setSize({ width: containerRef.current.clientWidth, height: 280 })
       }
     })
     ro.observe(containerRef.current)
@@ -128,91 +122,102 @@ export default function DecayPlot({ band, variant = 'full', onClick }: Props) {
     return () => {
       ro.disconnect()
       plot.destroy()
-      plotRef.current = null
     }
-  }, [band, variant])
+  }, [props])
 
-  return (
-    <div
-      ref={containerRef}
-      className={`decay-plot ${variant}`}
-      onClick={onClick}
-      // Keyboard accessibility for the thumbnail click handler.
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => {
-        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault()
-          onClick()
-        }
-      }}
-    />
-  )
+  return <div ref={containerRef} className="decay-plot full" />
 }
 
 // ---- data preparation ---------------------------------------------------
 
-/**
- * Build the array shape uPlot wants: [xValues, ...ySeries]. We also
- * compute a sensible y-axis lower bound so the EDC fills the plot well
- * regardless of how far the decay went.
- */
-function buildPlotData(band: BandResult): {
+interface BuiltData {
   data: uPlot.AlignedData
   yMin: number
-} {
-  const Fs = band.sampleRate
-  const N = band.edcDb.length
+  seriesNames: {
+    edc: string
+    regression: string
+    refUpper: string
+    refLower: string
+  }
+}
 
-  // Time axis. Using a Float64Array for uPlot.
+function buildPlotData(props: DecayPlotProps): BuiltData {
+  const Fs = props.sampleRate
+  const N = props.edcDb.length
+
+  // Time axis.
   const t = new Float64Array(N)
   for (let i = 0; i < N; i++) t[i] = i / Fs
 
-  // EDC, copied from Float32 to a plain number array for uPlot. Replace
-  // -Infinity samples (clamped at the floor in schroederEdcDb) with NaN
-  // so uPlot breaks the line rather than drawing a spike.
+  // EDC, with -Infinity replaced by NaN so uPlot breaks the line cleanly
+  // rather than drawing off-screen.
   const edc = new Float64Array(N)
   for (let i = 0; i < N; i++) {
-    const v = band.edcDb[i]
+    const v = props.edcDb[i]
     edc[i] = Number.isFinite(v) ? v : NaN
   }
 
-  // Regression line: y = slope*x + intercept, drawn only between
-  // sampleStart and sampleEnd. Outside the range use NaN so the line
-  // breaks (uPlot won't draw between NaN gaps).
+  // Regression line over its fitted range, NaN elsewhere so uPlot breaks
+  // the line at the boundary.
   const regression = new Float64Array(N)
   regression.fill(NaN)
-  if (band.reportedRegression && band.reportedRange[0] >= 0 && band.reportedRange[1] >= 0) {
-    const { slope, intercept } = band.reportedRegression
-    if (Number.isFinite(slope) && Number.isFinite(intercept)) {
-      // Extend the regression line a bit beyond the fitted range so the
-      // user can see the extrapolation clearly. Use the dB endpoints and
-      // solve for time.
-      const startSample = Math.max(0, band.reportedRange[0] - Math.round(0.05 * Fs))
-      const endSample = Math.min(N - 1, band.reportedRange[1] + Math.round(0.05 * Fs))
-      for (let i = startSample; i <= endSample; i++) {
-        regression[i] = slope * (i / Fs) + intercept
-      }
+  if (
+    props.regression &&
+    props.regression.sampleStart >= 0 &&
+    props.regression.sampleEnd >= 0 &&
+    Number.isFinite(props.regression.slope) &&
+    Number.isFinite(props.regression.intercept)
+  ) {
+    // Extend slightly beyond the fitted range so the user can see the
+    // extrapolation visually (~50 ms each side, capped at signal bounds).
+    const margin = Math.round(0.05 * Fs)
+    const startSample = Math.max(0, props.regression.sampleStart - margin)
+    const endSample = Math.min(N - 1, props.regression.sampleEnd + margin)
+    const { slope, intercept } = props.regression
+    for (let i = startSample; i <= endSample; i++) {
+      regression[i] = slope * (i / Fs) + intercept
     }
   }
 
-  // Horizontal reference dB lines (constant Y across all X).
-  const refUpper = new Float64Array(N).fill(band.reportedDbRange[0])
-  const refLower = new Float64Array(N).fill(band.reportedDbRange[1])
+  // Horizontal reference dB lines (constant Y across all X). If there are
+  // no dbRange endpoints supplied, draw flat NaN so the series is hidden.
+  const refUpper = new Float64Array(N)
+  const refLower = new Float64Array(N)
+  if (props.dbRange) {
+    refUpper.fill(props.dbRange[0])
+    refLower.fill(props.dbRange[1])
+  } else {
+    refUpper.fill(NaN)
+    refLower.fill(NaN)
+  }
 
   // Noise plateau line.
   const noiseLine = new Float64Array(N)
-  noiseLine.fill(Number.isFinite(band.noisePlateauDb) ? band.noisePlateauDb : NaN)
+  noiseLine.fill(
+    props.noisePlateauDb !== undefined && Number.isFinite(props.noisePlateauDb)
+      ? props.noisePlateauDb
+      : NaN,
+  )
 
   // Y-axis lower bound: a few dB below the noise plateau, but no lower
-  // than -90 (deeper has no value), and never higher than -30 (so we
-  // always see at least to -30 dB to make the EDC shape readable).
-  const noiseFloor = Number.isFinite(band.noisePlateauDb) ? band.noisePlateauDb : -60
+  // than -90 (deeper has no value), and never higher than -30.
+  const noiseFloor =
+    props.noisePlateauDb !== undefined && Number.isFinite(props.noisePlateauDb)
+      ? props.noisePlateauDb
+      : -60
   let yMin = Math.min(-30, noiseFloor - 5)
   if (yMin < -90) yMin = -90
+
+  const seriesNames = {
+    edc: 'EDC',
+    regression: 'Regression',
+    refUpper: props.dbRange ? `${props.dbRange[0]} dB` : 'ref-upper',
+    refLower: props.dbRange ? `${props.dbRange[1]} dB` : 'ref-lower',
+  }
 
   return {
     data: [t, edc, regression, refUpper, refLower, noiseLine] as unknown as uPlot.AlignedData,
     yMin,
+    seriesNames,
   }
 }

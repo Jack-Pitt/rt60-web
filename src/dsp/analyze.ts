@@ -109,9 +109,37 @@ export interface AnalysisInput {
   clipped: boolean
 }
 
+/** Decay-curve pipeline output that doesn't depend on band metadata.
+ *  Both BandResult and OverallResult contain one of these. */
+export interface DecayPipelineResult {
+  sampleRate: number
+  inrDb: number
+  reportedMetric: ReportedMetric
+  reportedRtSeconds: number
+  reportedR2: number
+  reportedRange: [number, number]
+  reportedDbRange: [number, number]
+  reportedRegression: RegressionResult | null
+  edtSeconds: number
+  edtR2: number
+  edtRegression: RegressionResult
+  edtRange: [number, number]
+  edcDb: Float32Array
+  noiseFloorDb: number
+  noisePlateauDb: number
+  flags: ResultFlag[]
+}
+
+/** Result for the unfiltered (broadband) impulse, shown as the default
+ *  "Overall" view on the decay-curve display. Same shape as a BandResult
+ *  but without band metadata. */
+export type OverallResult = DecayPipelineResult
+
 export interface AnalysisResult {
   sampleRate: number
   bands: BandResult[]
+  /** Broadband (unfiltered) decay curve and metrics. Always computed. */
+  overall: OverallResult
   /** Whether the original raw recording clipped (any band). */
   clipped: boolean
 }
@@ -150,9 +178,13 @@ export function analyzeImpulseResponse(
   for (const band of bands) {
     results.push(analyseBand(input, band, thresholds, r2Floor))
   }
+  // Broadband ("Overall") analysis on the unfiltered signals. Default
+  // view on the decay-curve display.
+  const overall = analyseOverall(input, thresholds, r2Floor)
   return {
     sampleRate: input.sampleRate,
     bands: results,
+    overall,
     clipped: input.clipped,
   }
 }
@@ -163,7 +195,7 @@ function analyseBand(
   thresholds: InrThresholds,
   r2Floor: number,
 ): BandResult {
-  // 1) Design and apply the bandpass filter.
+  // Design and apply the bandpass filter for this band.
   const sections = designButterworthBandpass(band.lower, band.upper, input.sampleRate)
   const filteredImpulse = applyBiquadCascade(input.impulse, sections)
   const filteredNoise = applyBiquadCascade(input.noise, sections)
@@ -171,14 +203,60 @@ function analyseBand(
     ? applyBiquadCascade(input.preNoise, sections)
     : null
 
-  // 2) Energy-decay curve.
+  const pipeline = runDecayPipeline(
+    filteredImpulse,
+    filteredNoise,
+    filteredPreNoise,
+    input.sampleRate,
+    input.clipped,
+    thresholds,
+    r2Floor,
+  )
+  if (band.uncertain) pipeline.flags.push('uncertain-freq')
+
+  return { ...pipeline, band }
+}
+
+function analyseOverall(
+  input: AnalysisInput,
+  thresholds: InrThresholds,
+  r2Floor: number,
+): OverallResult {
+  // No filtering — the broadband impulse and noise are used as-is. This
+  // is the conventional "overall energy decay" view in acoustic software,
+  // dominated by whatever frequency content the impulse source produced.
+  return runDecayPipeline(
+    input.impulse,
+    input.noise,
+    input.preNoise ?? null,
+    input.sampleRate,
+    input.clipped,
+    thresholds,
+    r2Floor,
+  )
+}
+
+/**
+ * Shared pipeline used by both per-band and broadband analysis. Takes
+ * already-filtered (or unfiltered, for broadband) signals and produces
+ * the EDC + INR + reported metric + flags. Band-specific concerns
+ * (band metadata, uncertain-freq flag) are layered on by the caller.
+ */
+function runDecayPipeline(
+  filteredImpulse: Float32Array,
+  filteredNoise: Float32Array,
+  filteredPreNoise: Float32Array | null,
+  sampleRate: number,
+  clipped: boolean,
+  thresholds: InrThresholds,
+  r2Floor: number,
+): DecayPipelineResult {
+  // 1) Energy-decay curve.
   const edcDb = schroederEdcDb(filteredImpulse)
 
-  // 3) Noise floor and INR. When a pre-impulse background is supplied, take
+  // 2) Noise floor and INR. When a pre-impulse background is supplied, take
   //    the louder of pre vs post — the impulse is only as detectable as the
-  //    worst of the two backgrounds. (We don't flag "background changed"
-  //    separately: if either background dragged INR below the threshold
-  //    the existing INR-tier decision logic catches it.)
+  //    worst of the two backgrounds.
   const peak = peakAbs(filteredImpulse)
   const noiseRmsPost = rms(filteredNoise)
   const noiseRmsPre = filteredPreNoise ? rms(filteredPreNoise) : noiseRmsPost
@@ -188,9 +266,8 @@ function analyseBand(
     peak > 0 && noiseRmsEffective > 0 ? 20 * Math.log10(noiseRmsEffective / peak) : -Infinity
 
   // Noise plateau on the EDC scale: where the EDC would land if the IR
-  // window contained only noise of this RMS. Used as the horizontal noise
-  // line on the decay plot. Computed from total IR energy (= cumulative[0]
-  // of the squared signal) vs noise energy over the same window length.
+  // window contained only noise of this RMS. Drawn as the horizontal noise
+  // line on the decay plot.
   let totalImpulseEnergy = 0
   for (let i = 0; i < filteredImpulse.length; i++) {
     const s = filteredImpulse[i]
@@ -203,9 +280,9 @@ function analyseBand(
       : -Infinity
 
   // Always compute EDT (0 to -10 dB).
-  const edt = fitDecayRT(edcDb, input.sampleRate, 0, -10)
+  const edt = fitDecayRT(edcDb, sampleRate, 0, -10)
 
-  // 4) Pick the reportable metric per the brief.
+  // 3) Pick the reportable metric per the brief.
   let reportedMetric: ReportedMetric = 'invalid'
   let reportedRt = NaN
   let reportedR2 = NaN
@@ -214,7 +291,7 @@ function analyseBand(
   let reportedRegression: RegressionResult | null = null
 
   if (inr >= thresholds.t30) {
-    const fit = fitDecayRT(edcDb, input.sampleRate, -5, -35)
+    const fit = fitDecayRT(edcDb, sampleRate, -5, -35)
     reportedMetric = 'T30'
     reportedRt = fit.rtSeconds
     reportedR2 = fit.regression.r2
@@ -222,7 +299,7 @@ function analyseBand(
     reportedDbRange = [-5, -35]
     reportedRegression = fit.regression
   } else if (inr >= thresholds.t20) {
-    const fit = fitDecayRT(edcDb, input.sampleRate, -5, -25)
+    const fit = fitDecayRT(edcDb, sampleRate, -5, -25)
     reportedMetric = 'T20'
     reportedRt = fit.rtSeconds
     reportedR2 = fit.regression.r2
@@ -240,16 +317,14 @@ function analyseBand(
     reportedMetric = 'invalid'
   }
 
-  // 5) Flags.
+  // 4) Flags. Band-specific flags (uncertain-freq) are added by callers.
   const flags: ResultFlag[] = []
-  if (input.clipped) flags.push('clipped')
-  if (band.uncertain) flags.push('uncertain-freq')
+  if (clipped) flags.push('clipped')
   if (reportedMetric === 'EDT-only') flags.push('low-INR')
   if (Number.isFinite(reportedR2) && reportedR2 < r2Floor) flags.push('non-linear')
 
   return {
-    band,
-    sampleRate: input.sampleRate,
+    sampleRate,
     inrDb: inr,
     reportedMetric,
     reportedRtSeconds: reportedRt,

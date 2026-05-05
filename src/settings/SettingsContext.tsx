@@ -19,16 +19,16 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  decayDurationSec: 3,
+  decayDurationSec: 2,
   triggerThresholdDb: 30,
   inrThresholds: { ...DEFAULT_INR_THRESHOLDS },
   nonLinearR2Threshold: 0.95,
   enabledBandCentres: BANDS.map((b) => b.centre),
 }
 
-// Bumped to v2 when default decay duration changed from 6 to 3, so users
-// pick up the new default instead of being stuck on the saved old one.
-const STORAGE_KEY = 'rt60.settings.v2'
+// Bumped each time the defaults change so users pick up new values instead
+// of being stuck on the saved old ones.
+const STORAGE_KEY = 'rt60.settings.v3'
 
 interface Ctx {
   settings: Settings
@@ -75,7 +75,7 @@ function loadSettings(): Settings {
     if (!raw) return DEFAULT_SETTINGS
     const parsed = JSON.parse(raw) as Partial<Settings>
     return {
-      decayDurationSec: clamp(parsed.decayDurationSec ?? DEFAULT_SETTINGS.decayDurationSec, 3, 10),
+      decayDurationSec: clamp(parsed.decayDurationSec ?? DEFAULT_SETTINGS.decayDurationSec, 1, 10),
       triggerThresholdDb: clamp(parsed.triggerThresholdDb ?? DEFAULT_SETTINGS.triggerThresholdDb, 6, 60),
       inrThresholds: {
         t30: parsed.inrThresholds?.t30 ?? DEFAULT_SETTINGS.inrThresholds.t30,
