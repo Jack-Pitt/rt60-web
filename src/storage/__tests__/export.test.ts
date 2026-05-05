@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { buildCsv, buildJson, buildFilename } from '../export'
+import {
+  buildCsv,
+  buildCsvBundle,
+  buildJson,
+  buildFilename,
+  buildBundleFilename,
+} from '../export'
 import { analyzeImpulseResponse } from '../../dsp/analyze'
 import type { Metadata } from '../../measurement/types'
 import { bandByCentre } from '../../dsp/bands'
+import type { SavedMeasurement } from '../measurements'
 
 // Build a tiny synthetic measurement so we have something to serialise.
 function tinySynthetic() {
@@ -92,6 +99,68 @@ describe('JSON export', () => {
       const ms = Math.round(v * 1000)
       expect(Math.abs(ms - v * 1000)).toBeLessThan(1e-9)
     }
+  })
+})
+
+describe('CSV bundle export', () => {
+  function makeSaved(site: string, room: string, pos: string, ts: number): SavedMeasurement {
+    const { metadata, result } = tinySynthetic()
+    return {
+      id: `${ts}-x`,
+      timestamp: ts,
+      metadata: { ...metadata, site, room, position: pos },
+      result,
+    }
+  }
+
+  it('produces a single-measurement file when only one item is bundled', () => {
+    const items = [makeSaved('S', 'R', 'P', 1717612980000)]
+    const out = buildCsvBundle(items)
+    // Should be the single-measurement format (with the file-level header).
+    expect(out).toContain('# RT60 Measurement Export')
+    expect(out).not.toContain('# Comparison summary')
+    expect(out).not.toContain('# Index')
+  })
+
+  it('contains an index, three comparison-summary tables, and per-measurement detail blocks', () => {
+    const items = [
+      makeSaved('Site A', 'Room 1', 'P1', 1717612980000),
+      makeSaved('Site A', 'Room 1', 'P2', 1717613000000),
+      makeSaved('Site A', 'Room 1', 'P3', 1717613100000),
+    ]
+    const out = buildCsvBundle(items)
+    expect(out).toContain('# RT60 Measurements Bundle')
+    expect(out).toContain('Number of measurements,3')
+    expect(out).toContain('# Index')
+    expect(out).toContain('# Comparison summary — RT (s) per band')
+    expect(out).toContain('# Comparison summary — EDT (s) per band')
+    expect(out).toContain('# Comparison summary — INR (dB) per band')
+    expect(out).toContain('# Measurement 1: Site A / Room 1 / pos P1')
+    expect(out).toContain('# Measurement 2: Site A / Room 1 / pos P2')
+    expect(out).toContain('# Measurement 3: Site A / Room 1 / pos P3')
+  })
+
+  it('column count in comparison summaries matches the number of measurements', () => {
+    const items = [
+      makeSaved('Site A', 'Room 1', 'P1', 1717612980000),
+      makeSaved('Site A', 'Room 1', 'P2', 1717613000000),
+    ]
+    const out = buildCsvBundle(items)
+    // Find the RT comparison summary header line.
+    const lines = out.split('\r\n')
+    const hdrIdx = lines.findIndex((l) =>
+      l.startsWith('Band (Hz),') && l.split(',').length === 3,
+    )
+    expect(hdrIdx).toBeGreaterThan(0)
+    // Expect band column + one per measurement.
+    expect(lines[hdrIdx].split(',')).toHaveLength(3)
+  })
+})
+
+describe('buildBundleFilename', () => {
+  it('uses the RT60_Bundle prefix and includes the measurement count', () => {
+    const name = buildBundleFilename(3, 1717612980000, 'csv')
+    expect(name).toMatch(/^RT60_Bundle_3_2024-06-05T18-43-00Z?\.csv$/)
   })
 })
 

@@ -11,13 +11,20 @@ import DecaySection from '../components/DecaySection'
 import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
 import { singleMeasurementSeries, isBandDubious } from './Measurement'
 import { useSettings } from '../settings/SettingsContext'
-import { buildCsv, buildJson, buildFilename, saveTextAsFile } from '../storage/export'
+import {
+  buildCsv,
+  buildCsvBundle,
+  buildFilename,
+  buildBundleFilename,
+  saveTextAsFile,
+} from '../storage/export'
 
 // History view — list of saved measurements, with two interaction modes:
 //   - Default: tap a row to open its full results screen.
-//   - Compare: tap "Compare" at the top, rows show checkboxes; pick 2+;
-//     "Plot N selected" opens a comparison view overlaying their RT
-//     spectra so the user can compare e.g. positions in one room.
+//   - Select: tap "Select" at the top, rows show checkboxes; pick one or
+//     many. The action bar exposes both "Plot" (overlay-compare via
+//     RT spectrum plot, ≥2 required) and "Export" (one-or-many CSV
+//     download/share).
 //
 // Per-measurement detail view (when openId is set) shows the RT spectrum
 // plot, decay curves, and the full table.
@@ -123,27 +130,38 @@ export default function Home() {
           />
           <DecaySection result={item.result} />
           <ResultsTable result={item.result} />
-          <div className="capture-controls capture-controls-row">
-            <button
-              className="primary-btn secondary-btn"
-              onClick={() => exportMeasurement(item, 'csv', setError)}
-            >
-              Export CSV
-            </button>
-            <button
-              className="primary-btn secondary-btn"
-              onClick={() => exportMeasurement(item, 'json', setError)}
-            >
-              Export JSON
-            </button>
-          </div>
           <div className="capture-controls">
             <button className="primary-btn primary-btn-stop" onClick={() => handleDelete(item.id)}>
               Delete this measurement
             </button>
           </div>
+          <p className="muted">
+            To export this measurement (or several at once), use the
+            <strong> Select</strong> button on the History list.
+          </p>
         </div>
       )
+    }
+  }
+
+  async function exportSelected() {
+    if (!items || selectedIds.size === 0) return
+    const selected = items.filter((m) => selectedIds.has(m.id))
+    try {
+      let content: string
+      let filename: string
+      if (selected.length === 1) {
+        const it = selected[0]
+        content = buildCsv(it.metadata, it.result, it.timestamp)
+        filename = buildFilename(it.metadata, it.timestamp, 'csv')
+      } else {
+        content = buildCsvBundle(selected)
+        filename = buildBundleFilename(selected.length, Date.now(), 'csv')
+      }
+      await saveTextAsFile(content, filename, 'text/csv')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError('Export failed: ' + msg)
     }
   }
 
@@ -153,9 +171,9 @@ export default function Home() {
     <div className="view view-home">
       <div className="capture-controls capture-controls-row">
         <Link to="/measure" className="primary-btn">+ New measurement</Link>
-        {items && items.length >= 2 && !compareMode && (
+        {items && items.length >= 1 && !compareMode && (
           <button className="primary-btn secondary-btn" onClick={() => setCompareMode(true)}>
-            Compare
+            Select
           </button>
         )}
       </div>
@@ -166,11 +184,18 @@ export default function Home() {
           <div className="compare-bar-actions">
             <button className="text-btn" onClick={exitCompareMode}>Cancel</button>
             <button
-              className="primary-btn"
+              className="primary-btn secondary-btn"
               disabled={selectedIds.size < 2}
               onClick={() => setShowingComparison(true)}
             >
-              Plot {selectedIds.size} selected
+              Plot
+            </button>
+            <button
+              className="primary-btn"
+              disabled={selectedIds.size < 1}
+              onClick={exportSelected}
+            >
+              Export
             </button>
           </div>
         </div>
@@ -317,25 +342,6 @@ interface RowProps {
   selected: boolean
   onOpen: () => void
   onDelete: () => void
-}
-
-async function exportMeasurement(
-  item: SavedMeasurement,
-  kind: 'csv' | 'json',
-  setError: (msg: string) => void,
-) {
-  try {
-    const content =
-      kind === 'csv'
-        ? buildCsv(item.metadata, item.result, item.timestamp)
-        : buildJson(item.metadata, item.result, item.timestamp)
-    const filename = buildFilename(item.metadata, item.timestamp, kind)
-    const mime = kind === 'csv' ? 'text/csv' : 'application/json'
-    await saveTextAsFile(content, filename, mime)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    setError('Export failed: ' + msg)
-  }
 }
 
 function HistoryRow({ item, compareMode, selected, onOpen, onDelete }: RowProps) {

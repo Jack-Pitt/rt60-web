@@ -25,7 +25,6 @@ import ResultsTable from '../components/ResultsTable'
 import DecaySection from '../components/DecaySection'
 import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
 import { saveMeasurement } from '../storage/measurements'
-import { buildCsv, buildJson, buildFilename, saveTextAsFile } from '../storage/export'
 import { useNavigate } from 'react-router-dom'
 import type { AnalysisResult, BandResult } from '../dsp/analyze'
 
@@ -185,24 +184,6 @@ export default function Measurement() {
     }
   }
 
-  async function handleExport(kind: 'csv' | 'json') {
-    if (!unsaved) return
-    // Live measurement that hasn't been saved yet — use 'now' as the
-    // timestamp for the filename, matching what would be saved.
-    const ts = Date.now()
-    const content =
-      kind === 'csv'
-        ? buildCsv(unsaved.metadata, unsaved.analysis, ts)
-        : buildJson(unsaved.metadata, unsaved.analysis, ts)
-    const filename = buildFilename(unsaved.metadata, ts, kind)
-    const mime = kind === 'csv' ? 'text/csv' : 'application/json'
-    try {
-      await saveTextAsFile(content, filename, mime)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setError('Export failed: ' + msg)
-    }
-  }
 
   // ---- render --------------------------------------------------------
 
@@ -253,25 +234,9 @@ export default function Measurement() {
             {saving ? 'Saving...' : 'Save to history'}
           </button>
         </div>
-        <div className="capture-controls capture-controls-row">
-          <button
-            className="primary-btn secondary-btn"
-            onClick={() => handleExport('csv')}
-            disabled={saving}
-          >
-            Export CSV
-          </button>
-          <button
-            className="primary-btn secondary-btn"
-            onClick={() => handleExport('json')}
-            disabled={saving}
-          >
-            Export JSON
-          </button>
-        </div>
         <p className="muted">
-          Save stores the measurement on this device only (no cloud).
-          Export shares the file via the iOS share sheet, or downloads on desktop.
+          Save stores the measurement on this device. Export saved
+          measurements (one or many at once) from the History tab.
         </p>
       </div>
     )

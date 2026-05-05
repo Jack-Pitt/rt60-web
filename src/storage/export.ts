@@ -16,9 +16,16 @@
 
 import type { AnalysisResult, BandResult, DecayPipelineResult } from '../dsp/analyze'
 import { type Metadata, IMPULSE_SOURCE_LABELS } from '../measurement/types'
+import type { SavedMeasurement } from './measurements'
 
-// ---- CSV ----------------------------------------------------------------
+// ---- CSV (single measurement) -------------------------------------------
 
+/**
+ * Build a single-measurement CSV. Top-level wrapper that prepends the
+ * UTF-8 BOM and the file-level header line; the actual rows come from
+ * the reusable `singleMeasurementCsvBlock` so the bundle export can
+ * drop them under each per-measurement section header.
+ */
 export function buildCsv(
   metadata: Metadata,
   result: AnalysisResult,
@@ -26,6 +33,21 @@ export function buildCsv(
 ): string {
   const lines: string[] = []
   lines.push('# RT60 Measurement Export')
+  lines.push(...singleMeasurementCsvBlock(metadata, result, timestamp))
+  return BOM + lines.join('\r\n') + '\r\n'
+}
+
+/**
+ * The per-measurement section that's shared by single-measurement export
+ * and the bundle export. Returns rows WITHOUT the BOM or top-level
+ * `# RT60 Measurement Export` line.
+ */
+function singleMeasurementCsvBlock(
+  metadata: Metadata,
+  result: AnalysisResult,
+  timestamp: number,
+): string[] {
+  const lines: string[] = []
   lines.push(csvRow(['Site', metadata.site]))
   lines.push(csvRow(['Room', metadata.room]))
   lines.push(csvRow(['Position', metadata.position]))
@@ -65,9 +87,130 @@ export function buildCsv(
       formatNum(result.overall.noisePlateauDb, 1),
     ]),
   )
-  // Excel-friendly line endings + UTF-8 BOM.
-  return '﻿' + lines.join('\r\n') + '\r\n'
+  return lines
 }
+
+// ---- CSV (bundle / multi-measurement) -----------------------------------
+
+/**
+ * Build a bundled CSV containing multiple saved measurements. Layout:
+ *   1. File-level header + index table summarising the bundle.
+ *   2. Comparison summary — RT (s) per band, columns = each measurement.
+ *   3. Comparison summary — EDT (s) per band, columns = each measurement.
+ *   4. Detail block for each measurement (full per-band table + overall).
+ *
+ * Designed so the user can do at-a-glance comparison from sections 2-3
+ * and reach for the per-measurement detail blocks when they need flags
+ * or noise floors.
+ */
+export function buildCsvBundle(items: SavedMeasurement[]): string {
+  if (items.length === 0) return BOM + '# RT60 Measurements Bundle (empty)\r\n'
+  if (items.length === 1) {
+    // For a single-item "bundle", just produce the regular single-measurement
+    // file — no need for the comparison summaries.
+    const it = items[0]
+    return buildCsv(it.metadata, it.result, it.timestamp)
+  }
+
+  const lines: string[] = []
+  lines.push('# RT60 Measurements Bundle')
+  lines.push(csvRow(['Number of measurements', items.length.toString()]))
+  lines.push(csvRow(['Exported at', new Date().toISOString()]))
+  lines.push('')
+
+  // Index table for quick reference.
+  lines.push('# Index')
+  lines.push(
+    csvRow([
+      '#',
+      'Site',
+      'Room',
+      'Position',
+      'Timestamp',
+      'Impulse source',
+      'Sample rate (Hz)',
+      'Clipped',
+      'Notes',
+    ]),
+  )
+  items.forEach((item, i) => {
+    lines.push(
+      csvRow([
+        (i + 1).toString(),
+        item.metadata.site,
+        item.metadata.room,
+        item.metadata.position,
+        new Date(item.timestamp).toISOString(),
+        IMPULSE_SOURCE_LABELS[item.metadata.impulseSource],
+        item.result.sampleRate.toString(),
+        item.result.clipped ? 'true' : 'false',
+        item.metadata.notes,
+      ]),
+    )
+  })
+  lines.push('')
+
+  // Comparison summary tables. We use the first measurement's bands as
+  // the row reference — saved measurements all use the same fixed band
+  // set so this is safe in practice.
+  const refBands = items[0].result.bands
+  if (refBands.length > 0) {
+    const labels = items.map(
+      (item) =>
+        `${item.metadata.room || item.metadata.site}/${item.metadata.position}`,
+    )
+
+    lines.push('# Comparison summary — RT (s) per band')
+    lines.push(csvRow(['Band (Hz)', ...labels]))
+    for (let bIdx = 0; bIdx < refBands.length; bIdx++) {
+      const row = [refBands[bIdx].band.centre.toString()]
+      for (const item of items) {
+        const b = item.result.bands[bIdx]
+        row.push(b ? formatNum(b.reportedRtSeconds, 3) : '')
+      }
+      lines.push(csvRow(row))
+    }
+    lines.push('')
+
+    lines.push('# Comparison summary — EDT (s) per band')
+    lines.push(csvRow(['Band (Hz)', ...labels]))
+    for (let bIdx = 0; bIdx < refBands.length; bIdx++) {
+      const row = [refBands[bIdx].band.centre.toString()]
+      for (const item of items) {
+        const b = item.result.bands[bIdx]
+        row.push(b ? formatNum(b.edtSeconds, 3) : '')
+      }
+      lines.push(csvRow(row))
+    }
+    lines.push('')
+
+    lines.push('# Comparison summary — INR (dB) per band')
+    lines.push(csvRow(['Band (Hz)', ...labels]))
+    for (let bIdx = 0; bIdx < refBands.length; bIdx++) {
+      const row = [refBands[bIdx].band.centre.toString()]
+      for (const item of items) {
+        const b = item.result.bands[bIdx]
+        row.push(b ? formatNum(b.inrDb, 1) : '')
+      }
+      lines.push(csvRow(row))
+    }
+    lines.push('')
+  }
+
+  // Per-measurement detail blocks.
+  items.forEach((item, i) => {
+    lines.push(
+      `# Measurement ${i + 1}: ${item.metadata.site} / ${item.metadata.room} / pos ${item.metadata.position}`,
+    )
+    lines.push(...singleMeasurementCsvBlock(item.metadata, item.result, item.timestamp))
+    lines.push('')
+  })
+
+  return BOM + lines.join('\r\n') + '\r\n'
+}
+
+// UTF-8 BOM so Excel reliably detects the encoding (matters for the R² character).
+const BOM = '﻿'
 
 function rowForBand(b: BandResult): string[] {
   return [
@@ -154,11 +297,25 @@ export function buildFilename(
   timestamp: number,
   ext: 'csv' | 'json',
 ): string {
-  const ts = new Date(timestamp)
+  const ts = sanitizeTimestamp(timestamp)
+  return `RT60_${sanitize(metadata.site)}_${sanitize(metadata.room)}_${sanitize(metadata.position)}_${ts}.${ext}`
+}
+
+/** Bundle filename: RT60_Bundle_<count>_<timestamp>.<ext> */
+export function buildBundleFilename(
+  count: number,
+  timestamp: number,
+  ext: 'csv' | 'json',
+): string {
+  const ts = sanitizeTimestamp(timestamp)
+  return `RT60_Bundle_${count}_${ts}.${ext}`
+}
+
+function sanitizeTimestamp(timestamp: number): string {
+  return new Date(timestamp)
     .toISOString()
     .replace(/:/g, '-')   // colons aren't filesystem-safe everywhere
-    .replace(/\.\d+/, '') // drop the milliseconds for readability
-  return `RT60_${sanitize(metadata.site)}_${sanitize(metadata.room)}_${sanitize(metadata.position)}_${ts}.${ext}`
+    .replace(/\.\d+/, '') // drop milliseconds for readability
 }
 
 function sanitize(value: string): string {
