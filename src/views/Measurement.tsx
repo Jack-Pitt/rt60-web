@@ -23,8 +23,10 @@ import { analyzeImpulseResponse } from '../dsp/analyze'
 import { BANDS } from '../dsp/bands'
 import ResultsTable from '../components/ResultsTable'
 import DecaySection from '../components/DecaySection'
+import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
 import { saveMeasurement } from '../storage/measurements'
 import { useNavigate } from 'react-router-dom'
+import type { AnalysisResult } from '../dsp/analyze'
 
 // The full measurement view: metadata form -> record sequence -> results.
 // Step 5 deliverable; decay-curve plotting (step 6) is omitted for now.
@@ -202,6 +204,11 @@ export default function Measurement() {
             Recording clipped — impulse may be invalid. Reduce source level or move further away.
           </div>
         )}
+        <h3 className="results-section-title">RT spectrum</h3>
+        <RTSpectrumPlot
+          bandCentres={analysis.bands.map((b) => b.band.centre)}
+          series={singleMeasurementSeries(analysis)}
+        />
         <DecaySection result={analysis} />
         <ResultsTable result={analysis} />
         {error && (
@@ -363,6 +370,20 @@ export default function Measurement() {
       )}
     </div>
   )
+}
+
+/**
+ * Build two series (RT solid + EDT dashed) for the single-measurement
+ * spectrum plot. RT prefers T30/T20 reported value; EDT is always
+ * computed. Both arrays align to the band centre order in the result.
+ */
+export function singleMeasurementSeries(result: AnalysisResult): SpectrumSeries[] {
+  const rtValues = result.bands.map((b) => b.reportedRtSeconds)
+  const edtValues = result.bands.map((b) => b.edtSeconds)
+  return [
+    { label: 'T30/T20', values: rtValues, style: 'solid', color: '#5fa8ff' },
+    { label: 'EDT', values: edtValues, style: 'dashed', color: '#f5d36a' },
+  ]
 }
 
 interface StatusProps {

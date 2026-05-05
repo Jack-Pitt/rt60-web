@@ -518,6 +518,124 @@
   background: #2a1717;
 }
 
+.history-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #3a3f4d;
+  border-radius: 6px;
+  margin-right: 10px;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+}
+
+.history-checkbox.on {
+  background: #2a64f5;
+  border-color: #2a64f5;
+}
+
+.history-row-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.history-item.selected {
+  border-color: #2a64f5;
+}
+
+.history-open {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* Compare-mode action bar */
+.compare-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #131a26;
+  border: 1px solid #2a4f7a;
+  border-radius: 10px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.compare-bar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.compare-bar .primary-btn {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.text-btn {
+  background: transparent;
+  border: none;
+  color: #c4c8d2;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.secondary-btn {
+  background: #2a2e38 !important;
+  color: #c4c8d2 !important;
+  border: 1px solid #3a3f4d;
+}
+
+.results-section-title {
+  margin: 16px 0 8px;
+  font-size: 16px;
+}
+
+.rt-spectrum-plot {
+  display: block;
+  background: #0c0e13;
+  border: 1px solid #2a2e38;
+  border-radius: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Comparison legend list */
+.compare-legend {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.compare-legend li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #181b22;
+  border: 1px solid #2a2e38;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.compare-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 /* ===== Decay curve section ===== */
 
 .decay-section {
