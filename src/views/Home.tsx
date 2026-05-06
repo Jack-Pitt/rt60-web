@@ -373,13 +373,6 @@ interface RowProps {
 
 function HistoryRow({ item, compareMode, selected, onOpen, onDelete }: RowProps) {
   const meta = item.metadata
-  const bands = item.result.bands
-  const counts = {
-    T30: bands.filter((b) => b.reportedMetric === 'T30').length,
-    T20: bands.filter((b) => b.reportedMetric === 'T20').length,
-    EDT: bands.filter((b) => b.reportedMetric === 'EDT-only').length,
-    invalid: bands.filter((b) => b.reportedMetric === 'invalid').length,
-  }
   return (
     <li className={`history-item ${selected ? 'selected' : ''}`}>
       <button className="history-open" onClick={onOpen}>
@@ -391,16 +384,12 @@ function HistoryRow({ item, compareMode, selected, onOpen, onDelete }: RowProps)
         <div className="history-row-content">
           <div className="history-title">
             {meta.site} / {meta.room} / pos {meta.position}
+            {item.result.clipped && (
+              <span className="flag-chip flag-chip-inline">clipped</span>
+            )}
           </div>
           <div className="history-meta">
             {new Date(item.timestamp).toLocaleString()} · {IMPULSE_SOURCE_LABELS[meta.impulseSource]}
-          </div>
-          <div className="history-summary">
-            <span className="legend-swatch metric-T30" /> {counts.T30}
-            <span className="legend-swatch metric-T20" /> {counts.T20}
-            <span className="legend-swatch metric-EDT-only" /> {counts.EDT}
-            <span className="legend-swatch metric-invalid" /> {counts.invalid}
-            {item.result.clipped && <span className="flag-chip">clipped</span>}
           </div>
         </div>
       </button>

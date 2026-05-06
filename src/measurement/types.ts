@@ -1,10 +1,18 @@
 // Shared types for the measurement flow.
 
-export type ImpulseSource = 'balloon' | 'clapper' | 'pistol' | 'other'
+export type ImpulseSource =
+  | 'balloon'
+  | 'clapper'
+  | 'handclap'
+  | 'pistol'
+  | 'other'
 
+// Order is what the dropdown shows; alphabetised by label so it's
+// easy to scan.
 export const IMPULSE_SOURCE_LABELS: Record<ImpulseSource, string> = {
   balloon: 'Balloon pop',
   clapper: 'Clapper board',
+  handclap: 'Hand clap',
   pistol: 'Starter pistol',
   other: 'Other',
 }
