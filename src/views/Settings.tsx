@@ -160,6 +160,25 @@ export default function Settings() {
         </div>
       </section>
 
+      <section className="settings-section">
+        <h3>Advanced</h3>
+        <label className="settings-label settings-toggle">
+          <input
+            type="checkbox"
+            checked={settings.enableJsonExport}
+            onChange={(e) => update('enableJsonExport', e.target.checked)}
+          />
+          <span>Show JSON (raw) export option</span>
+        </label>
+        <p className="muted">
+          Adds an "Export JSON" button alongside Export CSV in the History
+          select bar. JSON files include the raw per-band Schroeder decay
+          curves so the data can be re-plotted in Python or other tools
+          without re-recording. Files are large (tens of MB per measurement)
+          and only useful if you intend to do programmatic re-analysis.
+        </p>
+      </section>
+
       <button className="primary-btn primary-btn-stop" onClick={reset}>
         Reset all to defaults
       </button>

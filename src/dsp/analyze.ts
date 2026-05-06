@@ -107,6 +107,10 @@ export interface AnalysisInput {
   sampleRate: number
   /** Whether the raw impulse recording hit ±1.0 anywhere; carried in to flag bands. */
   clipped: boolean
+  /** Sample index within `impulse` where the trigger fired (i.e. how
+   *  many samples of pre-trigger margin were prepended). Used only for
+   *  display — the analysis itself doesn't depend on it. */
+  triggerSampleIndex?: number
 }
 
 /** Decay-curve pipeline output that doesn't depend on band metadata.
@@ -142,6 +146,13 @@ export interface AnalysisResult {
   overall: OverallResult
   /** Whether the original raw recording clipped (any band). */
   clipped: boolean
+  /** Raw recorded impulse buffer (with pre-trigger margin) so the user
+   *  can inspect the time-domain waveform for AGC pumping or clipping
+   *  artefacts. Optional — measurements saved before this field was
+   *  introduced won't have it. */
+  rawImpulse?: Float32Array
+  /** Sample index within rawImpulse where the trigger fired. */
+  triggerSampleIndex?: number
 }
 
 export interface InrThresholds {
@@ -186,6 +197,11 @@ export function analyzeImpulseResponse(
     bands: results,
     overall,
     clipped: input.clipped,
+    // Keep a reference to the raw recording for the diagnostic waveform
+    // display and (later) re-analysis with different settings. We don't
+    // copy because the caller's buffer is captured-once and not mutated.
+    rawImpulse: input.impulse,
+    triggerSampleIndex: input.triggerSampleIndex,
   }
 }
 

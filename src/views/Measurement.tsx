@@ -24,6 +24,7 @@ import { BANDS } from '../dsp/bands'
 import ResultsTable from '../components/ResultsTable'
 import DecaySection from '../components/DecaySection'
 import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
+import ImpulseWaveform from '../components/ImpulseWaveform'
 import { saveMeasurement } from '../storage/measurements'
 import { useNavigate } from 'react-router-dom'
 import type { AnalysisResult, BandResult } from '../dsp/analyze'
@@ -131,6 +132,7 @@ export default function Measurement() {
           preNoise: segments.background,
           sampleRate: segments.sampleRate,
           clipped: segments.clipped,
+          triggerSampleIndex: segments.triggerSampleIndex,
         },
         {
           inrThresholds: settings.inrThresholds,
@@ -165,6 +167,27 @@ export default function Measurement() {
     setPhase('idle')
     setPhaseInfo({})
     setError(null)
+  }
+
+  /** Save the current measurement and immediately re-arm for another at
+   *  the same position. The metadata (site/room/position/notes/source)
+   *  stays in the form ready for the next take. */
+  async function saveAndRepeat() {
+    if (!unsaved) return
+    setSaving(true)
+    try {
+      await saveMeasurement(unsaved.metadata, unsaved.analysis)
+      setUnsaved(null)
+      setPhase('idle')
+      // Stay on this view — metadata is already preserved by the draft
+      // context, so the user just taps Start measurement again.
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError('Save failed: ' + msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function saveToHistory() {
@@ -211,6 +234,21 @@ export default function Measurement() {
           series={singleMeasurementSeries(analysis)}
           maxRtSec={settings.rtPlotMaxSec}
         />
+        {analysis.rawImpulse && (
+          <>
+            <h3 className="results-section-title">Recorded waveform</h3>
+            <p className="muted">
+              Raw recording, with the trigger point marked. Look for AGC
+              "pumping" (level dropping then recovering during the decay)
+              or any flat-top "clipping" near the impulse.
+            </p>
+            <ImpulseWaveform
+              samples={analysis.rawImpulse}
+              sampleRate={analysis.sampleRate}
+              triggerSampleIndex={analysis.triggerSampleIndex}
+            />
+          </>
+        )}
         <DecaySection result={analysis} />
         <ResultsTable result={analysis} />
         {error && (
@@ -227,16 +265,24 @@ export default function Measurement() {
             Discard
           </button>
           <button
+            className="primary-btn secondary-btn"
+            onClick={saveAndRepeat}
+            disabled={saving}
+          >
+            Save + repeat
+          </button>
+          <button
             className="primary-btn"
             onClick={saveToHistory}
             disabled={saving}
           >
-            {saving ? 'Saving...' : 'Save to history'}
+            {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
         <p className="muted">
-          Save stores the measurement on this device. Export saved
-          measurements (one or many at once) from the History tab.
+          Save stores the measurement on this device. Save + repeat keeps
+          the same metadata so you can quickly take multiple impulses at
+          one position. Export from the History tab.
         </p>
       </div>
     )

@@ -43,4 +43,7 @@ export interface CapturedSegments {
   clipped: boolean
   /** Trigger threshold actually used (amplitude, linear). */
   triggerThresholdAmp: number
+  /** Sample index within `impulse` where the trigger fired
+   *  (= number of pre-trigger samples retained). */
+  triggerSampleIndex: number
 }

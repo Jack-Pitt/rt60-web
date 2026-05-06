@@ -264,6 +264,33 @@ export function buildJson(
   return JSON.stringify(exportObj, null, 2)
 }
 
+/** Bundled JSON export — array of measurement objects under a top-level
+ *  envelope. Single-item bundles still get the same shape (length 1)
+ *  for consistency. */
+export function buildJsonBundle(items: SavedMeasurement[]): string {
+  const measurements = items.map((item) => ({
+    id: item.id,
+    measurementTimestamp: new Date(item.timestamp).toISOString(),
+    metadata: item.metadata,
+    sampleRate: item.result.sampleRate,
+    clipped: item.result.clipped,
+    overall: serializePipeline(item.result.overall),
+    bands: item.result.bands.map((b) => ({
+      band: b.band,
+      ...serializePipeline(b),
+    })),
+  }))
+  return JSON.stringify(
+    {
+      appVersion: 'rt60-web/0.1',
+      exportedAt: new Date().toISOString(),
+      measurements,
+    },
+    null,
+    2,
+  )
+}
+
 function serializePipeline(p: DecayPipelineResult) {
   return {
     sampleRate: p.sampleRate,

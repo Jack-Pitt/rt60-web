@@ -21,6 +21,10 @@ export interface Settings {
    *  ceiling, so a single very long band doesn't squash the rest of the
    *  spectrum into the bottom of the plot. */
   rtPlotMaxSec: number
+  /** Show an "Export JSON (raw)" button alongside the regular CSV export.
+   *  JSON is large (per-band decay-curve arrays included) and only useful
+   *  if you plan to re-analyse with a script. Off by default. */
+  enableJsonExport: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -30,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   nonLinearR2Threshold: 0.95,
   enabledBandCentres: BANDS.map((b) => b.centre),
   rtPlotMaxSec: 3,
+  enableJsonExport: false,
 }
 
 // Bumped each time the defaults change so users pick up new values instead
@@ -95,6 +100,10 @@ function loadSettings(): Settings {
           ? parsed.enabledBandCentres
           : DEFAULT_SETTINGS.enabledBandCentres,
       rtPlotMaxSec: clamp(parsed.rtPlotMaxSec ?? DEFAULT_SETTINGS.rtPlotMaxSec, 1, 10),
+      enableJsonExport:
+        typeof parsed.enableJsonExport === 'boolean'
+          ? parsed.enableJsonExport
+          : DEFAULT_SETTINGS.enableJsonExport,
     }
   } catch {
     return DEFAULT_SETTINGS

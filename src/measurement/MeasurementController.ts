@@ -74,6 +74,10 @@ export class MeasurementController {
   // Decay storage. Allocated once we know the trigger threshold.
   private impulseBuf: Float32Array
   private impulseIdx = 0
+  /** Number of pre-trigger samples actually copied into impulseBuf — i.e.
+   *  the index within impulseBuf where the trigger sample lands. Used by
+   *  the diagnostic waveform display to mark the trigger point. */
+  private triggerSampleIndex = 0
 
   // Post-noise storage.
   private postNoiseBuf: Float32Array
@@ -243,6 +247,7 @@ export class MeasurementController {
     const preCount = Math.min(ringSnapshot.length, this.impulseBuf.length)
     this.impulseBuf.set(ringSnapshot.subarray(ringSnapshot.length - preCount, ringSnapshot.length), 0)
     this.impulseIdx = preCount
+    this.triggerSampleIndex = preCount
 
     this.transition('recording', {
       samplesTotal: this.impulseBuf.length,
@@ -302,6 +307,7 @@ export class MeasurementController {
       sampleRate: this.opts.sampleRate,
       clipped: this.clipped,
       triggerThresholdAmp: this.triggerThresholdAmp,
+      triggerSampleIndex: this.triggerSampleIndex,
     }
     this.opts.onComplete(segments)
   }

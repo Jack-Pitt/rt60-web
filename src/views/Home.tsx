@@ -9,11 +9,14 @@ import { IMPULSE_SOURCE_LABELS } from '../measurement/types'
 import ResultsTable from '../components/ResultsTable'
 import DecaySection from '../components/DecaySection'
 import RTSpectrumPlot, { type SpectrumSeries } from '../components/RTSpectrumPlot'
+import ImpulseWaveform from '../components/ImpulseWaveform'
 import { singleMeasurementSeries, isBandDubious } from './Measurement'
 import { useSettings } from '../settings/SettingsContext'
 import {
   buildCsv,
   buildCsvBundle,
+  buildJson,
+  buildJsonBundle,
   buildFilename,
   buildBundleFilename,
   saveTextAsFile,
@@ -128,6 +131,16 @@ export default function Home() {
             series={singleMeasurementSeries(item.result)}
             maxRtSec={settings.rtPlotMaxSec}
           />
+          {item.result.rawImpulse && (
+            <>
+              <h3 className="results-section-title">Recorded waveform</h3>
+              <ImpulseWaveform
+                samples={item.result.rawImpulse}
+                sampleRate={item.result.sampleRate}
+                triggerSampleIndex={item.result.triggerSampleIndex}
+              />
+            </>
+          )}
           <DecaySection result={item.result} />
           <ResultsTable result={item.result} />
           <div className="capture-controls">
@@ -144,21 +157,26 @@ export default function Home() {
     }
   }
 
-  async function exportSelected() {
+  async function exportSelected(kind: 'csv' | 'json') {
     if (!items || selectedIds.size === 0) return
     const selected = items.filter((m) => selectedIds.has(m.id))
     try {
       let content: string
       let filename: string
+      const mime = kind === 'csv' ? 'text/csv' : 'application/json'
       if (selected.length === 1) {
         const it = selected[0]
-        content = buildCsv(it.metadata, it.result, it.timestamp)
-        filename = buildFilename(it.metadata, it.timestamp, 'csv')
+        content =
+          kind === 'csv'
+            ? buildCsv(it.metadata, it.result, it.timestamp)
+            : buildJson(it.metadata, it.result, it.timestamp)
+        filename = buildFilename(it.metadata, it.timestamp, kind)
       } else {
-        content = buildCsvBundle(selected)
-        filename = buildBundleFilename(selected.length, Date.now(), 'csv')
+        content =
+          kind === 'csv' ? buildCsvBundle(selected) : buildJsonBundle(selected)
+        filename = buildBundleFilename(selected.length, Date.now(), kind)
       }
-      await saveTextAsFile(content, filename, 'text/csv')
+      await saveTextAsFile(content, filename, mime)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setError('Export failed: ' + msg)
@@ -193,10 +211,19 @@ export default function Home() {
             <button
               className="primary-btn"
               disabled={selectedIds.size < 1}
-              onClick={exportSelected}
+              onClick={() => exportSelected('csv')}
             >
-              Export
+              Export {settings.enableJsonExport ? 'CSV' : ''}
             </button>
+            {settings.enableJsonExport && (
+              <button
+                className="primary-btn secondary-btn"
+                disabled={selectedIds.size < 1}
+                onClick={() => exportSelected('json')}
+              >
+                Export JSON
+              </button>
+            )}
           </div>
         </div>
       )}
