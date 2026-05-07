@@ -447,11 +447,13 @@ export function singleMeasurementSeries(result: AnalysisResult): SpectrumSeries[
   const edtValues = result.bands.map((b) => b.edtSeconds)
   const uncertain = result.bands.map(isBandDubious)
   return [
-    // Colours match the metric pills/buttons, slightly brightened for line
-    // visibility on the dark plot background.
-    { label: 'T30', values: t30Values, uncertain, style: 'solid', color: '#2bb060' },
-    { label: 'T20', values: t20Values, uncertain, style: 'solid', color: '#7ed68f' },
-    { label: 'EDT', values: edtValues, uncertain, style: 'dashed', color: '#f0902e' },
+    // Colours match the metric pills/buttons. Greens are slightly
+    // desaturated so they harmonise with NVC teal elsewhere on the plot;
+    // EDT shifts to amber (away from any red so it doesn't fight the
+    // dubious-marker rings).
+    { label: 'T30', values: t30Values, uncertain, style: 'solid', color: '#22a160' },
+    { label: 'T20', values: t20Values, uncertain, style: 'solid', color: '#6dcb7e' },
+    { label: 'EDT', values: edtValues, uncertain, style: 'dashed', color: '#d4881e' },
   ]
 }
 
@@ -489,7 +491,9 @@ function RecordingStatus({ phase, phaseInfo, decayDurationSec, triggerThresholdD
     case 'armed':
       title = 'Trigger impulse now'
       subtitle = `Listening for any sound > ${triggerThresholdDb} dB above background`
-      big = '👏'
+      // Sentinel value picked up by the render to swap in a vector mark
+      // instead of a glyph (kept emoji-free per HIG/NVC guidance).
+      big = '__trigger_mark__'
       break
     case 'recording':
       title = 'Recording decay'
@@ -513,7 +517,11 @@ function RecordingStatus({ phase, phaseInfo, decayDurationSec, triggerThresholdD
   return (
     <div className={`status-card status-${phase}`}>
       <div className="status-title">{title}</div>
-      {big && <div className="status-big">{big}</div>}
+      {big === '__trigger_mark__' ? (
+        <div className="status-trigger-mark" aria-hidden="true" />
+      ) : big ? (
+        <div className="status-big">{big}</div>
+      ) : null}
       <div className="status-subtitle">{subtitle}</div>
     </div>
   )

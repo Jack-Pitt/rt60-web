@@ -64,8 +64,8 @@ function drawWaveform(
   canvas.style.width = `${cssW}px`
   canvas.style.height = `${cssH}px`
 
-  // Background.
-  ctx.fillStyle = '#0c0e13'
+  // Background — matches the canvas-deep token used elsewhere for plots.
+  ctx.fillStyle = '#0a0c10'
   ctx.fillRect(0, 0, w, h)
 
   // Auto-crop to just the section around the impulse so a millisecond
@@ -92,7 +92,7 @@ function drawWaveform(
 
   // Min/max envelope per pixel column over the cropped range.
   const samplesPerPixel = Math.max(1, Math.floor(visibleLength / w))
-  ctx.fillStyle = '#5fa8ff'
+  ctx.fillStyle = '#00A48B'
   for (let x = 0; x < w; x++) {
     let mn = 1
     let mx = -1
@@ -117,7 +117,7 @@ function drawWaveform(
     triggerSampleIndex < endSample
   ) {
     const x = ((triggerSampleIndex - startSample) / visibleLength) * w
-    ctx.strokeStyle = '#f5d36a'
+    ctx.strokeStyle = '#d4881e'
     ctx.lineWidth = 1.5 * dpr
     ctx.setLineDash([6 * dpr, 4 * dpr])
     ctx.beginPath()

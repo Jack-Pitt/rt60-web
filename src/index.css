@@ -1,8 +1,60 @@
-/* Global resets and base typography. App-level layout lives in App.css. */
+/* Global resets, design tokens, and base typography. App-level layout
+   lives in App.css; component-level styles live with their components. */
 
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
+  /* ---- Brand ---- */
+  --color-accent: #00A48B;          /* NVC teal — single accent across the UI */
+  --color-accent-hover: #028e78;    /* slightly darker teal for :active feedback */
+  --color-accent-soft: rgba(0, 164, 139, 0.12);  /* faint teal wash for tinted states */
+
+  /* ---- Surfaces (dark theme) ---- */
+  --color-bg: #0e1014;              /* page canvas, slightly warmer than the old #0f1115 */
+  --color-surface: #16191f;         /* card/section background */
+  --color-surface-2: #1c1f26;       /* nested surface (inputs, slightly lighter than surface) */
+  --color-canvas-deep: #0a0c10;     /* canvas behind plots, deeper than the page */
+
+  /* ---- Text ---- */
+  --color-text: #f4f4f5;
+  --color-text-secondary: #c4c8d2;
+  --color-text-muted: #9aa1ad;
+  --color-text-faint: #6e7585;
+
+  /* ---- Borders / rules ---- */
+  --color-border: #2a2e38;
+  --color-rule: rgba(221, 221, 221, 0.16);   /* hairline divider — dark-mode equivalent of NVC #DDDDDD */
+  --color-rule-strong: rgba(221, 221, 221, 0.28);
+
+  /* ---- Semantic measurement colours (functional, not brand) ---- */
+  --color-t30: #22a160;             /* T30 dark green, slightly desaturated to harmonise with teal */
+  --color-t20: #6dcb7e;             /* T20 light green */
+  --color-edt: #d4881e;             /* EDT-only amber (was orange — slightly more amber, less red) */
+  --color-invalid: #8e2424;         /* invalid dark red */
+  --color-critical: #d23a3a;        /* clipped/non-linear bright red override */
+  --color-dubious: #ff5555;         /* hollow ring marker for dubious-accuracy points on plots */
+
+  /* ---- Plot palette (comparison view + spectrum series) ----
+     Teal first so the brand colour leads. No reds/oranges so they don't
+     fight the dubious-marker red. */
+  --plot-1: #00A48B;
+  --plot-2: #4ade80;
+  --plot-3: #facc15;
+  --plot-4: #c084fc;
+  --plot-5: #22d3ee;
+  --plot-6: #f472b6;
+  --plot-7: #a3e635;
+  --plot-8: #94a3b8;
+
+  /* ---- Layout / spacing ---- */
+  --radius-sm: 4px;                 /* tight elements (chips, table row separators) */
+  --radius-md: 6px;                 /* buttons, inputs */
+  --radius-lg: 10px;                /* cards, sections */
+  --radius-xl: 14px;                /* large containers */
+
+  /* iOS-native font stack: SF Pro on Apple devices, modern fallbacks elsewhere.
+     Roboto and Segoe UI cover Android and Windows; Arial is the last fallback
+     so NVC's printed-document family is honoured if nothing else loads. */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px;
   line-height: 1.45;
   color-scheme: dark;
@@ -23,12 +75,20 @@ html, body, #root {
 }
 
 body {
-  background: #0f1115;
-  color: #f4f4f5;
+  background: var(--color-bg);
+  color: var(--color-text);
   /* Disable the rubber-band overscroll glow that can show through the dark UI. */
   overscroll-behavior-y: none;
 }
 
 button, input, select, textarea {
   font: inherit;
+}
+
+/* Tabular numerals for any container marked .tabular — apply on numeric
+   tables so columns align even when values change. */
+.tabular,
+.tabular td,
+.tabular th {
+  font-variant-numeric: tabular-nums;
 }

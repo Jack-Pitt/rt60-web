@@ -270,10 +270,11 @@ interface ComparisonProps {
 
 // Palette deliberately excludes reds and oranges — those would clash
 // with the dubious-marker red used to flag uncertain bands on the same
-// plot. First four entries are the most distinguishable (typical use:
+// plot. NVC teal leads so the brand colour anchors the comparison.
+// First four entries are the most distinguishable (typical use:
 // 2-4 measurements compared at a time).
 const COMPARE_PALETTE = [
-  '#5fa8ff', // blue
+  '#00A48B', // NVC teal
   '#4ade80', // green
   '#facc15', // yellow
   '#c084fc', // purple

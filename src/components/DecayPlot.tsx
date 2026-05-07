@@ -86,14 +86,18 @@ export default function DecayPlot(props: DecayPlotProps) {
       series: [
         {},
         {
+          // EDC line in NVC teal so the brand colour leads the diagnostic.
           label: seriesNames.edc,
-          stroke: '#5fa8ff',
+          stroke: '#00A48B',
           width: 2,
           points: { show: false },
         },
         {
+          // Regression line in amber — same family as the EDT line on
+          // the spectrum plot, away from any red so it doesn't conflict
+          // with the dubious-marker hue.
           label: seriesNames.regression,
-          stroke: '#f5d36a',
+          stroke: '#d4881e',
           width: 2,
           points: { show: false },
         },
