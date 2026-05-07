@@ -37,12 +37,16 @@
 }
 
 .app-mark-nvc {
-  /* NVC SVG mark in the header — recreated from the official NVC PDF
-     (white-on-teal lockup) but rendered in teal-on-transparent so it
-     reads on the dark canvas. */
-  height: 38px;
-  width: auto;
+  /* Clean three-letter NVC wordmark in the header. Heavy weight + tight
+     tracking gives a logo feel using the same system font stack as the
+     rest of the app — consistent with NVC's document branding (Arial-
+     family) without introducing a different typeface. */
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: var(--color-accent);
   justify-self: start;
+  line-height: 1;
 }
 
 .app-title {

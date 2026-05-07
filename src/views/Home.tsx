@@ -268,18 +268,23 @@ interface ComparisonProps {
   maxRtSec: number
 }
 
-// Palette deliberately excludes reds and oranges — those would clash
-// with the dubious-marker red used to flag uncertain bands on the same
-// plot. NVC teal leads so the brand colour anchors the comparison.
-// First four entries are the most distinguishable (typical use:
-// 2-4 measurements compared at a time).
+// Comparison palette. NVC teal anchors the brand. The first four entries
+// (typical use: 2–4 measurements) are picked for MAXIMUM hue separation
+// rather than aesthetic harmony — when measurements at the same site
+// have nearly identical RT spectra, similar-hue lines collapse into one
+// visual blob. Teal/orange/yellow/magenta are 90°+ apart on the colour
+// wheel and stay distinct on a dark background.
+//
+// Compare mode skips the dubious-marker overlay (see RTSpectrumPlot) so
+// using a warm orange here doesn't compete with the dubious-red rings
+// used in single-measurement views.
 const COMPARE_PALETTE = [
   '#00A48B', // NVC teal
-  '#4ade80', // green
+  '#f97316', // bright orange
   '#facc15', // yellow
-  '#c084fc', // purple
+  '#ec4899', // magenta / pink
   '#22d3ee', // cyan
-  '#f472b6', // pink (magenta-leaning, away from red)
+  '#4ade80', // green
   '#a3e635', // lime
   '#94a3b8', // slate grey
 ]

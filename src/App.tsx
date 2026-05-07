@@ -20,13 +20,7 @@ function Layout() {
     <div className="app">
       <header className="app-header">
         <div className="app-header-bar">
-          <img
-            className="app-mark-nvc"
-            src={`${import.meta.env.BASE_URL}nvc-mark.svg`}
-            alt="NVC"
-            width="120"
-            height="38"
-          />
+          <span className="app-mark-nvc" aria-label="NVC">NVC</span>
           <h1 className="app-title">RT60</h1>
           <a
             className="app-mark-link"
