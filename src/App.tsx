@@ -6,13 +6,32 @@ import { SettingsProvider } from './settings/SettingsContext'
 import { MeasurementDraftProvider } from './measurement/DraftContext'
 import './App.css'
 
-// Top-level layout: a header with the app name and a small nav,
-// and an <Outlet/> where the active route renders its content.
+// NVC website — replace with the canonical URL once confirmed.
+// Set as a const so it's easy to update in one place.
+const NVC_WEBSITE_URL = 'https://nvc.com.au'
+
+// Top-level layout. Header has three rows on iPhone:
+//   1. Brand bar — NVC mark on the left, "RT60" title centred, external
+//      link to the NVC website on the right.
+//   2. Tab nav with the teal underline rule.
+// And an <Outlet/> where the active route renders its content.
 function Layout() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1 className="app-title">RT60</h1>
+        <div className="app-header-bar">
+          <span className="app-mark-nvc" aria-hidden="true">NVC</span>
+          <h1 className="app-title">RT60</h1>
+          <a
+            className="app-mark-link"
+            href={NVC_WEBSITE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Visit NVC website"
+          >
+            <ExternalLinkIcon />
+          </a>
+        </div>
         <nav className="app-nav">
           <NavLink to="/" end>History</NavLink>
           <NavLink to="/measure">Measure</NavLink>
@@ -23,6 +42,28 @@ function Layout() {
         <Outlet />
       </main>
     </div>
+  )
+}
+
+/** Compact external-link icon used in the brand bar. Inline SVG so it
+ *  inherits currentColor from the parent <a> for hover/focus styling. */
+function ExternalLinkIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </svg>
   )
 }
 

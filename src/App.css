@@ -27,12 +27,57 @@
   padding: env(safe-area-inset-top) 16px 0;
 }
 
+/* Brand bar — NVC mark | RT60 title | external link to nvc website. */
+.app-header-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;  /* mark left, title centred, link right */
+  align-items: center;
+  padding: 10px 0 8px;
+  min-height: 44px;
+}
+
+.app-mark-nvc {
+  /* Typographic NVC mark — placeholder until the official SharePoint
+     SVG is integrated. Treated as the brand wordmark, not body text. */
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-accent);
+  font-size: 16px;
+  justify-self: start;
+}
+
 .app-title {
-  margin: 12px 0 6px;
-  font-size: 20px;        /* iOS Title 3-ish */
+  margin: 0;
+  font-size: 22px;        /* iOS Title 2 — primary brand title */
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--color-text);
+  justify-self: center;
+}
+
+.app-mark-link {
+  /* External-link button — meets the 44pt iOS HIG touch-target minimum
+     even though the icon glyph is only 20px. */
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  transition: color 120ms ease, background-color 120ms ease;
+}
+
+.app-mark-link:hover,
+.app-mark-link:focus-visible {
+  color: var(--color-accent);
+  outline: none;
+}
+
+.app-mark-link:active {
+  background: var(--color-accent-soft);
 }
 
 .app-nav {
