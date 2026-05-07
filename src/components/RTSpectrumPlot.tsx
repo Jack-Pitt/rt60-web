@@ -46,6 +46,13 @@ interface Props {
   height?: number
   /** Y-axis ceiling in seconds; the auto-scaled max is capped at this. */
   maxRtSec?: number
+  /** When true, dubious points are flagged with red overlay markers.
+   *  Set false in comparison mode to keep the plot uncluttered when
+   *  multiple measurements are stacked. Default true. */
+  showDubiousOverlay?: boolean
+  /** Override the line stroke width. Useful for comparison mode where
+   *  thicker lines help distinguish overlapping curves. Default 2. */
+  strokeWidth?: number
 }
 
 const PALETTE = [
@@ -66,6 +73,8 @@ export default function RTSpectrumPlot({
   series,
   height = 280,
   maxRtSec = 3,
+  showDubiousOverlay = true,
+  strokeWidth = 2,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -92,14 +101,31 @@ export default function RTSpectrumPlot({
     const ySeriesArrays: Float64Array[] = []
     const uplotSeries: uPlot.Series[] = [{}]
 
+    // Pre-compute label uniqueness so duplicate labels (multiple takes
+    // at the same site/room/pos) don't collapse into one legend row.
+    // uPlot tolerates duplicate labels but it makes the legend
+    // ambiguous; we suffix duplicates with their position in the array.
+    const labelCounts = new Map<string, number>()
+    series.forEach((s) => labelCounts.set(s.label, (labelCounts.get(s.label) ?? 0) + 1))
+    const labelSeen = new Map<string, number>()
+    const uniqueLabels = series.map((s) => {
+      if ((labelCounts.get(s.label) ?? 0) <= 1) return s.label
+      const seen = (labelSeen.get(s.label) ?? 0) + 1
+      labelSeen.set(s.label, seen)
+      return `${s.label} #${seen}`
+    })
+
     series.forEach((s, i) => {
       const colour = s.color ?? PALETTE[i % PALETTE.length]
+      const label = uniqueLabels[i]
 
-      // Main line: NaN at uncertain bands.
+      // Main line: NaN at uncertain bands when the dubious overlay is
+      // visible, otherwise we keep the value so the line stays unbroken.
       const mainArr = new Float64Array(bandCentres.length)
       for (let k = 0; k < bandCentres.length; k++) {
         const v = s.values[k]
-        if (s.uncertain && s.uncertain[k]) {
+        const isUncertain = !!(s.uncertain && s.uncertain[k])
+        if (showDubiousOverlay && isUncertain) {
           mainArr[k] = NaN
         } else {
           mainArr[k] = Number.isFinite(v) ? v : NaN
@@ -107,15 +133,17 @@ export default function RTSpectrumPlot({
       }
       ySeriesArrays.push(mainArr)
       uplotSeries.push({
-        label: s.label,
+        label,
         stroke: colour,
-        width: 2,
+        width: strokeWidth,
         dash: s.style === 'dashed' ? [6, 4] : undefined,
         points: { show: true, size: 6, fill: colour, stroke: colour },
       })
 
-      // Uncertain overlay: only where uncertain.
-      if (s.uncertain && s.uncertain.some((u) => u)) {
+      // Uncertain overlay (single-measurement views only by default).
+      // Skipped in comparison mode to keep the plot uncluttered when
+      // multiple measurements are stacked.
+      if (showDubiousOverlay && s.uncertain && s.uncertain.some((u) => u)) {
         const uncArr = new Float64Array(bandCentres.length)
         for (let k = 0; k < bandCentres.length; k++) {
           const v = s.values[k]
@@ -123,7 +151,7 @@ export default function RTSpectrumPlot({
         }
         ySeriesArrays.push(uncArr)
         uplotSeries.push({
-          label: `${s.label} (dubious)`,
+          label: `${label} (dubious)`,
           // Series stroke determines the legend swatch colour, even when
           // width=0 means no actual line is drawn on the plot. Red so the
           // legend matches the hollow red ring markers below.
@@ -208,7 +236,7 @@ export default function RTSpectrumPlot({
       ro.disconnect()
       plot.destroy()
     }
-  }, [bandCentres, series, height, maxRtSec])
+  }, [bandCentres, series, height, maxRtSec, showDubiousOverlay, strokeWidth])
 
   return <div ref={containerRef} className="rt-spectrum-plot" />
 }

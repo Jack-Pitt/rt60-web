@@ -295,11 +295,19 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
 
   // Each measurement gets its own dubious mask: a band might be valid
   // in one measurement and non-linear in another, so we don't share the
-  // mask across series.
+  // mask across series. Labels include a short date so multiple takes
+  // at the same site/room/position read distinctly in the legend.
   const series: SpectrumSeries[] = items.map((item, i) => {
     const ref = items[0]
+    const labelBase = `${item.metadata.room || item.metadata.site} / ${item.metadata.position}`
+    const labelDate = new Date(item.timestamp).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
     return {
-      label: `${item.metadata.room || item.metadata.site} / ${item.metadata.position}`,
+      label: `${labelBase} · ${labelDate}`,
       values: ref
         ? ref.result.bands.map((b, idx) => {
             const matching = item.result.bands[idx]
@@ -339,6 +347,12 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
         series={series}
         height={320}
         maxRtSec={maxRtSec}
+        // Comparison mode: drop the per-series dubious-marker overlay
+        // (single-measurement views still get it) and use thicker
+        // strokes so similar-shaped curves remain visually separable
+        // when stacked.
+        showDubiousOverlay={false}
+        strokeWidth={2.5}
       />
       <ul className="compare-legend">
         {items.map((item, i) => (

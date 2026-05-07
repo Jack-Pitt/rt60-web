@@ -37,12 +37,11 @@
 }
 
 .app-mark-nvc {
-  /* Typographic NVC mark — placeholder until the official SharePoint
-     SVG is integrated. Treated as the brand wordmark, not body text. */
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--color-accent);
-  font-size: 16px;
+  /* NVC SVG mark in the header — recreated from the official NVC PDF
+     (white-on-teal lockup) but rendered in teal-on-transparent so it
+     reads on the dark canvas. */
+  height: 38px;
+  width: auto;
   justify-self: start;
 }
 
