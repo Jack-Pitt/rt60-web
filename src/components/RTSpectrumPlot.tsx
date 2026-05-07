@@ -119,17 +119,16 @@ export default function RTSpectrumPlot({
       const colour = s.color ?? PALETTE[i % PALETTE.length]
       const label = uniqueLabels[i]
 
-      // Main line: NaN at uncertain bands when the dubious overlay is
-      // visible, otherwise we keep the value so the line stays unbroken.
+      // Main line: ALWAYS NaN at uncertain bands so dubious values are
+      // omitted from the plot regardless of mode. The line breaks
+      // cleanly at those gaps. The optional overlay below only adds the
+      // hollow red marker rings on top — it doesn't change which values
+      // appear on the main line.
       const mainArr = new Float64Array(bandCentres.length)
       for (let k = 0; k < bandCentres.length; k++) {
         const v = s.values[k]
         const isUncertain = !!(s.uncertain && s.uncertain[k])
-        if (showDubiousOverlay && isUncertain) {
-          mainArr[k] = NaN
-        } else {
-          mainArr[k] = Number.isFinite(v) ? v : NaN
-        }
+        mainArr[k] = isUncertain || !Number.isFinite(v) ? NaN : v
       }
       ySeriesArrays.push(mainArr)
       uplotSeries.push({
