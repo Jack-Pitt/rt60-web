@@ -12,7 +12,7 @@ const DEFAULT_METADATA: Metadata = {
   room: '',
   position: '',
   notes: '',
-  impulseSource: 'clapper',
+  impulseSource: 'handclap',
 }
 
 interface UnsavedResult {
