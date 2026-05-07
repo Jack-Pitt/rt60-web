@@ -20,8 +20,16 @@ function Layout() {
     <div className="app">
       <header className="app-header">
         <div className="app-header-bar">
-          <span className="app-mark-nvc" aria-label="NVC">NVC</span>
-          <h1 className="app-title">RT60</h1>
+          {/* Wordmark: SF Pro Display weight contrast — Black "RT60"
+              alongside Thin "by NVC", with the NVC mark in heavy teal.
+              Both texts share a baseline; the size disparity carries
+              the hierarchy. */}
+          <h1 className="app-wordmark">
+            <span className="app-wordmark-rt60">RT60</span>
+            <span className="app-wordmark-by">
+              by <span className="app-wordmark-nvc">NVC</span>
+            </span>
+          </h1>
           <a
             className="app-mark-link"
             href={NVC_WEBSITE_URL}
@@ -33,7 +41,7 @@ function Layout() {
           </a>
         </div>
         <nav className="app-nav">
-          <NavLink to="/" end>History</NavLink>
+          <NavLink to="/" end>Records</NavLink>
           <NavLink to="/measure">Measure</NavLink>
           <NavLink to="/settings">Settings</NavLink>
         </nav>

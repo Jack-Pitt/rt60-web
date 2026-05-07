@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Icon concept 1 — typographic stack">
+  <!-- Icon 1: pure typographic stack on NVC teal.
+       RT60 (top), by (small italic centred), NVC (bottom).
+       Three clear typographic tiers. Minimal, modern. -->
+  <rect width="512" height="512" rx="96" fill="#00A48B"/>
+
+  <text x="256" y="200" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="900" font-size="120" fill="#ffffff" letter-spacing="-3">RT60</text>
+
+  <text x="256" y="280" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-style="italic" font-weight="400" font-size="42" fill="rgba(255,255,255,0.7)">by</text>
+
+  <text x="256" y="410" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="900" font-size="140" fill="#ffffff" letter-spacing="-2">NVC</text>
+</svg>

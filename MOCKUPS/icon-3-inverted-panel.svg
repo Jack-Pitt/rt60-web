@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Icon concept 3 — inverted bottom panel">
+  <!-- Icon 3: top two-thirds = white-on-teal (RT60, by), bottom third =
+       inverted teal-on-white panel for the NVC mark. Strong figure/
+       ground contrast; reads cleanly even at smallest home-screen sizes
+       because the colour split is the icon's silhouette. -->
+
+  <!-- Background. The teal canvas covers the whole rounded rect. -->
+  <rect width="512" height="512" rx="96" fill="#00A48B"/>
+
+  <!-- White panel at the bottom for the inverted NVC stamp. We keep
+       the rounded-rect corner radius continuous: a separate rect
+       clipped to the icon's outer corners. -->
+  <path d="M0 320 L0 416 Q0 512 96 512 L416 512 Q512 512 512 416 L512 320 Z" fill="#ffffff"/>
+
+  <!-- RT60 white on teal at top. -->
+  <text x="256" y="190" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="900" font-size="120" fill="#ffffff" letter-spacing="-3">RT60</text>
+
+  <!-- Small italic "by" between the two halves, positioned so it
+       straddles the colour boundary visually. -->
+  <text x="256" y="280" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-style="italic" font-weight="400" font-size="44" fill="rgba(255,255,255,0.85)">by</text>
+
+  <!-- NVC heavy bold teal in the white inverted panel. -->
+  <text x="256" y="445" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="900" font-size="120" fill="#00A48B" letter-spacing="-2">NVC</text>
+</svg>

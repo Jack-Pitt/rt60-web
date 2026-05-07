@@ -27,35 +27,55 @@
   padding: env(safe-area-inset-top) 16px 0;
 }
 
-/* Brand bar — NVC mark | RT60 title | external link to nvc website. */
+/* Brand bar — left wordmark "RT60 by NVC" with weight contrast, plus an
+   external-link icon on the right. */
 .app-header-bar {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;  /* mark left, title centred, link right */
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 10px 0 8px;
   min-height: 44px;
+  gap: 12px;
 }
 
-.app-mark-nvc {
-  /* Clean three-letter NVC wordmark in the header. Heavy weight + tight
-     tracking gives a logo feel using the same system font stack as the
-     rest of the app — consistent with NVC's document branding (Arial-
-     family) without introducing a different typeface. */
+/* The whole "RT60 by NVC" lockup as a single h1. Children sit on a
+   shared baseline so the size disparity reads as Apple-style display
+   weight contrast rather than as misaligned text. */
+.app-wordmark {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.app-wordmark-rt60 {
+  /* SF Pro Display Black at iOS Title 2 size — the Apple homepage
+     "hero number" feel adapted for a header bar. */
   font-weight: 900;
-  font-size: 22px;
+  font-size: 28px;
   letter-spacing: -0.02em;
-  color: var(--color-accent);
-  justify-self: start;
+  color: var(--color-text);
   line-height: 1;
 }
 
-.app-title {
-  margin: 0;
-  font-size: 22px;        /* iOS Title 2 — primary brand title */
-  font-weight: 700;
+.app-wordmark-by {
+  /* SF Pro Display Thin — sits in the lower portion of the RT60
+     bounding box thanks to baseline alignment. */
+  font-weight: 200;
+  font-size: 17px;
+  color: var(--color-text-muted);
   letter-spacing: -0.01em;
-  color: var(--color-text);
-  justify-self: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.app-wordmark-nvc {
+  /* NVC mark in the wordmark — heavy bold teal anchors the brand. */
+  font-weight: 800;
+  color: var(--color-accent);
+  letter-spacing: -0.005em;
 }
 
 .app-mark-link {

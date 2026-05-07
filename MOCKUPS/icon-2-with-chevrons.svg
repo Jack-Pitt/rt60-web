@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Icon concept 2 — typographic stack with NVC chevrons">
+  <!-- Icon 2: typographic stack + the NVC sound-wave chevron decoration
+       beside "NVC" at the bottom. Strongest brand recognition — clearly
+       the NVC mark, with RT60/by added as a header. -->
+  <rect width="512" height="512" rx="96" fill="#00A48B"/>
+
+  <text x="256" y="195" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="900" font-size="115" fill="#ffffff" letter-spacing="-3">RT60</text>
+
+  <text x="256" y="270" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-style="italic" font-weight="400" font-size="40" fill="rgba(255,255,255,0.7)">by</text>
+
+  <!-- NVC bottom row with sound-wave chevrons either side. -->
+  <text x="256" y="395" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="900" font-size="120" fill="#ffffff" letter-spacing="-2">NVC</text>
+
+  <!-- Three nested chevrons either side, white on teal — matches the
+       NVC PDF lockup. -->
+  <g fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="square">
+    <!-- Left side, pointing outward. -->
+    <polyline points="78,365 50,385 78,405"/>
+    <polyline points="106,367 80,385 106,403"/>
+    <polyline points="134,369 112,385 134,401"/>
+    <!-- Right side, mirrored. -->
+    <polyline points="434,365 462,385 434,405"/>
+    <polyline points="406,367 432,385 406,403"/>
+    <polyline points="378,369 400,385 378,401"/>
+  </g>
+</svg>

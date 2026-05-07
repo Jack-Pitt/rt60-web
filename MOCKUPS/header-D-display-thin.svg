@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 140" role="img" aria-label="Header concept D — Apple display thin hero">
+  <!-- Header D: Apple homepage hero treatment.
+       "RT60" set huge in SF Pro Display Thin (weight 200), tight
+       tracking. "BY NVC" tucked at the bottom-right of the wordmark
+       in tracked small-caps with NVC in teal. The thin display
+       weight + tiny tracked subtitle is Apple's product-page move. -->
+  <rect width="750" height="140" fill="#0e1014"/>
+
+  <text x="40" y="100"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="200" font-size="84" fill="#f4f4f5" letter-spacing="-3">RT60</text>
+
+  <text x="320" y="100"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="600" font-size="11" fill="#9aa1ad" letter-spacing="5">BY <tspan fill="#00A48B" font-weight="800">NVC</tspan></text>
+
+  <g transform="translate(680, 56)" stroke="#9aa1ad" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 14v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h8"/>
+    <polyline points="18 2 26 2 26 10"/>
+    <line x1="11" y1="15" x2="26" y2="2"/>
+  </g>
+
+  <line x1="0" y1="138" x2="750" y2="138" stroke="rgba(221,221,221,0.20)" stroke-width="1"/>
+</svg>

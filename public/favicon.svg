@@ -1,42 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NVC RT60">
-  <!-- Square app icon. NVC lockup (white on teal) recreated from the
-       PDF, with "RT60" added beneath the tagline as a subscript so the
-       icon identifies this specific tool while keeping the brand. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="RT60 by NVC">
+  <!-- App icon — translates Header G to a square format. Same dark
+       canvas as the app header so the icon feels continuous with what
+       the user sees on launch; same SF Pro Display weight contrast
+       (Black RT60 + Thin by, with NVC in heavy teal). -->
 
-  <!-- Teal background — NVC corporate teal #00A48B. Rounded square per
-       iOS home-screen icon conventions (iOS will mask further). -->
-  <rect width="512" height="512" rx="96" fill="#00A48B"/>
+  <!-- Dark canvas, rounded square (iOS will apply its own corner mask
+       on top). -->
+  <rect width="512" height="512" rx="96" fill="#0e1014"/>
 
-  <!-- "NVC" wordmark — large, heavy, white. Mirrors the NVC logo PDF. -->
-  <text x="256" y="240"
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-weight="900" font-size="200" letter-spacing="-3"
-    text-anchor="middle" fill="#ffffff">NVC</text>
+  <!-- "RT60" — heavy Black weight, tight letter-spacing, large. -->
+  <text x="256" y="270" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="900" font-size="170" fill="#ffffff" letter-spacing="-6">RT60</text>
 
-  <!-- Sound-wave chevron decorations on either side of the tagline,
-       three nested levels per side, matching the PDF lockup. -->
-  <g fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="square">
-    <!-- Left side, pointing outward (left). -->
-    <polyline points="100,295 70,315 100,335" />
-    <polyline points="125,297 100,315 125,333" />
-    <polyline points="150,299 130,315 150,331" />
-    <!-- Right side, pointing outward (right). -->
-    <polyline points="412,295 442,315 412,335" />
-    <polyline points="387,297 412,315 387,333" />
-    <polyline points="362,299 382,315 362,331" />
-  </g>
-
-  <!-- Tagline — small caps, generous tracking, matches the PDF. -->
-  <text x="256" y="325"
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-weight="500" font-size="22" letter-spacing="3"
-    text-anchor="middle" fill="#ffffff">NOISE  VIBRATION  CONSULTING</text>
-
-  <!-- A thin horizontal hairline rule + RT60 label below ties the
-       icon to this specific app while preserving the lockup above. -->
-  <rect x="156" y="370" width="200" height="2" fill="#ffffff" opacity="0.6"/>
-  <text x="256" y="430"
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-weight="700" font-size="60" letter-spacing="6"
-    text-anchor="middle" fill="#ffffff">RT60</text>
+  <!-- "by NVC" — Display Thin contrast against the Black above. NVC
+       in heavy teal, matching the in-app wordmark. -->
+  <text x="256" y="370" text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+    font-weight="200" font-size="64" fill="#9aa1ad" letter-spacing="-1">by <tspan font-weight="800" fill="#00A48B" letter-spacing="-0.5">NVC</tspan></text>
 </svg>

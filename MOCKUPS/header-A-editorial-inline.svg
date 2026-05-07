@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 140" role="img" aria-label="Header concept A — editorial inline">
+  <!-- Mocks the iPhone app header bar at roughly 2x density.
+       Header A: "RT60 by NVC" inline, single row.
+       RT60 = white heavy bold, "by" = muted italic light, NVC = teal heavy bold.
+       Editorial / modern. -->
+  <rect width="750" height="140" fill="#0e1014"/>
+
+  <text x="40" y="86" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif">
+    <tspan font-weight="900" font-size="64" fill="#f4f4f5" letter-spacing="-1.5">RT60</tspan>
+    <tspan font-style="italic" font-weight="300" font-size="32" fill="#9aa1ad" dx="22" baseline-shift="2">by</tspan>
+    <tspan font-weight="900" font-size="64" fill="#00A48B" dx="20" letter-spacing="-1">NVC</tspan>
+  </text>
+
+  <!-- External-link icon on the right, ~44pt target. -->
+  <g transform="translate(680, 56)" stroke="#9aa1ad" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 14v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h8"/>
+    <polyline points="18 2 26 2 26 10"/>
+    <line x1="11" y1="15" x2="26" y2="2"/>
+  </g>
+
+  <!-- Hairline under the header — site rule. -->
+  <line x1="0" y1="138" x2="750" y2="138" stroke="rgba(221,221,221,0.20)" stroke-width="1"/>
+</svg>
