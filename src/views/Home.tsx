@@ -350,12 +350,12 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
       <RTSpectrumPlot
         bandCentres={bandCentres}
         series={series}
-        height={320}
         maxRtSec={maxRtSec}
         // Comparison mode: drop the per-series dubious-marker overlay
         // (single-measurement views still get it) and use thicker
         // strokes so similar-shaped curves remain visually separable
-        // when stacked.
+        // when stacked. Height is left to the responsive default so
+        // iPad/desktop get the taller plot automatically.
         showDubiousOverlay={false}
         strokeWidth={2.5}
       />

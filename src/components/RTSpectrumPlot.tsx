@@ -42,7 +42,9 @@ export interface SpectrumSeries {
 interface Props {
   bandCentres: number[]
   series: SpectrumSeries[]
-  /** Display height. Defaults to 280 px. */
+  /** Display height. If unset, picks a viewport-aware default
+   *  (280 px on phone, 380 px on tablet+). Pass an explicit number
+   *  only when you specifically want to override the responsive default. */
   height?: number
   /** Y-axis ceiling in seconds; the auto-scaled max is capped at this. */
   maxRtSec?: number
@@ -68,14 +70,22 @@ const PALETTE = [
 
 const UNCERTAIN_COLOR = '#ff5555'
 
+/** Default plot height — responsive to window width so the plot is
+ *  taller on iPad / desktop and stays compact on iPhone. */
+function defaultHeight(): number {
+  if (typeof window === 'undefined') return 280
+  return window.innerWidth >= 768 ? 380 : 280
+}
+
 export default function RTSpectrumPlot({
   bandCentres,
   series,
-  height = 280,
+  height,
   maxRtSec = 3,
   showDubiousOverlay = true,
   strokeWidth = 2,
 }: Props) {
+  const effectiveHeight = height ?? defaultHeight()
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -182,7 +192,7 @@ export default function RTSpectrumPlot({
 
     const opts: uPlot.Options = {
       width: containerRef.current.clientWidth || 320,
-      height,
+      height: effectiveHeight,
       cursor: { drag: { x: false, y: false } },
       legend: { show: true },
       scales: {
@@ -226,7 +236,10 @@ export default function RTSpectrumPlot({
 
     const ro = new ResizeObserver(() => {
       if (containerRef.current) {
-        plot.setSize({ width: containerRef.current.clientWidth, height })
+        // Recompute the responsive default each tick so resizing the
+        // window across the 768 px breakpoint reflows the plot height.
+        const liveHeight = height ?? defaultHeight()
+        plot.setSize({ width: containerRef.current.clientWidth, height: liveHeight })
       }
     })
     ro.observe(containerRef.current)
@@ -235,7 +248,7 @@ export default function RTSpectrumPlot({
       ro.disconnect()
       plot.destroy()
     }
-  }, [bandCentres, series, height, maxRtSec, showDubiousOverlay, strokeWidth])
+  }, [bandCentres, series, height, effectiveHeight, maxRtSec, showDubiousOverlay, strokeWidth])
 
   return <div ref={containerRef} className="rt-spectrum-plot" />
 }

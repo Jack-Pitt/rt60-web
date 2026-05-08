@@ -35,6 +35,13 @@ export interface DecayPlotProps {
   noisePlateauDb?: number
 }
 
+/** Plot canvas height. Bumps up on tablet+ viewports (>= 768 px) so the
+ *  decay shape is visually easier to read on iPad / desktop windows. */
+function plotHeight(): number {
+  if (typeof window === 'undefined') return 280
+  return window.innerWidth >= 768 ? 400 : 280
+}
+
 export default function DecayPlot(props: DecayPlotProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -44,7 +51,7 @@ export default function DecayPlot(props: DecayPlotProps) {
 
     const opts: uPlot.Options = {
       width: containerRef.current.clientWidth || 320,
-      height: 280,
+      height: plotHeight(),
       cursor: { drag: { x: false, y: false } },
       legend: { show: true },
       scales: {
@@ -129,7 +136,7 @@ export default function DecayPlot(props: DecayPlotProps) {
 
     const ro = new ResizeObserver(() => {
       if (containerRef.current) {
-        plot.setSize({ width: containerRef.current.clientWidth, height: 280 })
+        plot.setSize({ width: containerRef.current.clientWidth, height: plotHeight() })
       }
     })
     ro.observe(containerRef.current)

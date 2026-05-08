@@ -35,7 +35,9 @@ export default defineConfig(({ command }) => ({
         background_color: '#0e1014',
         // Fullscreen, no Safari chrome — feels native after Add to Home Screen.
         display: 'standalone',
-        orientation: 'portrait',
+        // Allow either orientation so iPad / large iPhones / desktop
+        // browsers in landscape don't get force-rotated.
+        orientation: 'any',
         // Both scope and start_url honour the GitHub Pages subpath; Vite
         // injects the correct base via the `base` setting below.
         scope: './',

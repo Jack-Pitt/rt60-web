@@ -974,3 +974,82 @@
 .u-legend .u-marker {
   border-radius: 50% !important;
 }
+
+/* ===== Responsive: tablet and up (>= 768 px viewport) =====
+
+   Window-width-based, not device-based. iPad portrait/landscape, Mac/PC
+   browser windows, and Stage-Manager half-screens all reflow naturally.
+   Plot heights are bumped via JS in the plot components (which also
+   read window.innerWidth). */
+
+@media (min-width: 768px) {
+  /* Wider content container — uses some of the iPad/desktop breathing
+     room without letting line lengths get out of hand. */
+  .view {
+    max-width: 960px;
+  }
+
+  /* More generous main-content padding. */
+  .app-main {
+    padding: 32px 24px calc(env(safe-area-inset-bottom) + 32px);
+  }
+
+  /* Larger brand wordmark and section titles to match the bigger canvas. */
+  .app-wordmark-rt60 {
+    font-size: 36px;
+  }
+  .app-wordmark-by {
+    font-size: 22px;
+  }
+  .view h2 {
+    font-size: 28px;
+  }
+
+  /* Two-column metadata form — Site/Room on row 1, Position/Source on
+     row 2, Notes spanning both columns at the bottom. */
+  .meta-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 20px;
+    row-gap: 4px;
+  }
+  .meta-form > .settings-label {
+    margin: 8px 0;
+  }
+  /* The Notes field (textarea — last child) spans both columns. */
+  .meta-form > .settings-label:last-child {
+    grid-column: 1 / -1;
+  }
+
+  /* Records list as an auto-flow grid so iPad shows ~2 rows of records
+     per visible window without scrolling. */
+  .history-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 8px;
+  }
+
+  /* Results table no longer needs the horizontal-scroll fallback at
+     this width — let it use the full width naturally. */
+  .results-wrap {
+    overflow-x: visible;
+  }
+
+  /* Larger save/discard/etc. buttons read better with more screen. */
+  .primary-btn {
+    font-size: 18px;
+  }
+}
+
+/* ===== Wide tablet / desktop (>= 1100 px) — landscape iPad Pro and up.
+   At this width the records list goes 3-up and the comparison legend
+   has room for four-or-more measurements without wrapping. */
+
+@media (min-width: 1100px) {
+  .view {
+    max-width: 1100px;
+  }
+  .history-list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}

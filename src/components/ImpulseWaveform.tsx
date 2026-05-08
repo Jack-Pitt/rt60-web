@@ -16,16 +16,24 @@ interface Props {
    *  A vertical marker is drawn there so the user can see how the impulse
    *  sits in the buffer. */
   triggerSampleIndex?: number
-  /** Display height in CSS pixels. Defaults to 160. */
+  /** Display height in CSS pixels. If unset, picks 160 on phone or
+   *  220 on tablet+ (>= 768 px viewport). */
   height?: number
+}
+
+/** Default canvas height — taller on iPad / desktop windows. */
+function defaultHeight(): number {
+  if (typeof window === 'undefined') return 160
+  return window.innerWidth >= 768 ? 220 : 160
 }
 
 export default function ImpulseWaveform({
   samples,
   sampleRate,
   triggerSampleIndex,
-  height = 160,
+  height,
 }: Props) {
+  const effectiveHeight = height ?? defaultHeight()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
@@ -38,7 +46,7 @@ export default function ImpulseWaveform({
   }, [samples, sampleRate, triggerSampleIndex])
 
   return (
-    <div ref={containerRef} className="impulse-waveform-wrap" style={{ height }}>
+    <div ref={containerRef} className="impulse-waveform-wrap" style={{ height: effectiveHeight }}>
       <canvas ref={canvasRef} className="impulse-waveform-canvas" />
     </div>
   )
