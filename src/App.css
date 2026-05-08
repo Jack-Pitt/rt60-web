@@ -894,6 +894,26 @@
   margin-top: 0;
 }
 
+/* Version footer at the bottom of the Settings view. Subtle — kept
+   below the Reset button so it doesn't compete with the controls. */
+.settings-footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-rule);
+  font-size: 12px;
+  color: var(--color-text-faint);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-footer strong {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
 /* Recorded-impulse diagnostic waveform */
 .impulse-waveform-wrap {
   display: block;

@@ -352,9 +352,10 @@ export default function Measurement() {
       {(phase === 'idle' || phase === 'error') && (
         <>
           <div className="alert alert-warn">
-            Reminder: iOS Safari may not honour every audio constraint
-            (auto-gain, noise suppression). Validate against your Type 1 meter.
-            Hold the phone still during the impulse and decay.
+            Reminder: the device's audio pipeline may not fully honour
+            the requested capture settings (auto-gain, noise suppression).
+            Validate against your Type 1 meter, and hold the device still
+            during the impulse and decay.
           </div>
           <div className="capture-controls">
             <button

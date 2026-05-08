@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import packageJson from './package.json' with { type: 'json' }
 
 // GitHub Pages serves project sites under https://<user>.github.io/<repo>/.
 // `base` makes Vite emit relative URLs that resolve against that subpath in
@@ -10,6 +11,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 // Manifest so the app can be installed to the iPhone home screen and used
 // fully offline after the first load.
 export default defineConfig(({ command }) => ({
+  // Compile-time constants exposed to the app — version comes from
+  // package.json (single source of truth) and the build date is stamped
+  // at build time so the deployed app shows when its bundle was built.
+  define: {
+    __APP_VERSION__: JSON.stringify(packageJson.version),
+    __APP_BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+  },
   plugins: [
     react(),
     VitePWA({

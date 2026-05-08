@@ -182,6 +182,16 @@ export default function Settings() {
       <button className="primary-btn primary-btn-stop" onClick={reset}>
         Reset all to defaults
       </button>
+
+      {/* Version + build date stamped at build time from package.json
+          and the deploy timestamp; "by Jack Pitt" credit. Footer is
+          subtle so it doesn't compete with the controls above. */}
+      <footer className="settings-footer">
+        <div>
+          RT60 <strong>v{__APP_VERSION__}</strong> · built {__APP_BUILD_DATE__}
+        </div>
+        <div>by Jack Pitt</div>
+      </footer>
     </div>
   )
 }
