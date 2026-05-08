@@ -21,6 +21,7 @@ import {
   buildBundleFilename,
   saveTextAsFile,
 } from '../storage/export'
+import { ROOM_CRITERIA, findCriteria } from '../criteria/roomCriteria'
 
 // History view — list of saved measurements, with two interaction modes:
 //   - Default: tap a row to open its full results screen.
@@ -290,6 +291,19 @@ const COMPARE_PALETTE = [
 ]
 
 function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
+  // Optional design-criteria overlay: user enters room volume and picks
+  // a use; the plot draws a pale teal band between the AS/NZS-derived
+  // lower and upper RT targets so they can see at a glance whether the
+  // measurements are in the recommended range.
+  const [volumeInput, setVolumeInput] = useState<string>('')
+  const [useId, setUseId] = useState<string>('')
+  const volumeM3 = Number.parseFloat(volumeInput)
+  const selectedCriteria = useId ? findCriteria(useId) : undefined
+  const idealRange =
+    selectedCriteria && Number.isFinite(volumeM3) && volumeM3 > 0
+      ? selectedCriteria.rangeFor(volumeM3)
+      : null
+
   // We assume all selected measurements were taken with the same band set.
   // If they differ, fall back to the first item's bands (rare since the
   // app uses fixed third-octave bands).
@@ -347,6 +361,46 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
         (T30/T20) per third-octave band; gaps indicate bands with no
         reportable value (low INR or non-linear decay).
       </p>
+
+      {/* Optional design-target overlay: pick a use and enter a
+          volume; a pale teal band shows the AS/NZS-derived ideal RT
+          range. Both inputs must be filled to draw the band. */}
+      <div className="criteria-controls">
+        <label className="criteria-input">
+          <span>Volume (m³)</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={1}
+            step={1}
+            value={volumeInput}
+            onChange={(e) => setVolumeInput(e.target.value)}
+            placeholder="e.g. 250"
+          />
+        </label>
+        <label className="criteria-input">
+          <span>Use</span>
+          <select value={useId} onChange={(e) => setUseId(e.target.value)}>
+            <option value="">— none —</option>
+            {ROOM_CRITERIA.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {idealRange && (
+        <div className="criteria-summary">
+          <span className="criteria-swatch" />
+          <span>
+            <strong>Target RT:</strong> {idealRange.lower.toFixed(2)}–{idealRange.upper.toFixed(2)} s
+            {selectedCriteria?.description ? ` · ${selectedCriteria.description}` : ''}
+          </span>
+        </div>
+      )}
+      {idealRange?.warning && (
+        <div className="alert alert-warn criteria-warning">{idealRange.warning}</div>
+      )}
+
       <RTSpectrumPlot
         bandCentres={bandCentres}
         series={series}
@@ -358,6 +412,7 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
         // iPad/desktop get the taller plot automatically.
         showDubiousOverlay={false}
         strokeWidth={2.5}
+        idealRange={idealRange ? { lower: idealRange.lower, upper: idealRange.upper } : undefined}
       />
       <ul className="compare-legend">
         {items.map((item, i) => (

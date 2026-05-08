@@ -55,6 +55,10 @@ interface Props {
   /** Override the line stroke width. Useful for comparison mode where
    *  thicker lines help distinguish overlapping curves. Default 2. */
   strokeWidth?: number
+  /** Optional shaded band representing an "ideal" RT range — e.g. the
+   *  AS/NZS 2107 design target for a chosen room use + volume. Drawn
+   *  beneath the lines as a pale teal-green tint. */
+  idealRange?: { lower: number; upper: number }
 }
 
 const PALETTE = [
@@ -84,6 +88,7 @@ export default function RTSpectrumPlot({
   maxRtSec = 3,
   showDubiousOverlay = true,
   strokeWidth = 2,
+  idealRange,
 }: Props) {
   const effectiveHeight = height ?? defaultHeight()
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -178,9 +183,53 @@ export default function RTSpectrumPlot({
       }
     })
 
+    // ---- Ideal-range band overlay (e.g. AS/NZS 2107 design target) ----
+    //
+    // Drawn beneath the lines as a pale teal-green tint between two
+    // invisible series for the upper and lower bound. uPlot's bands
+    // feature fills between the two referenced series; we reference
+    // them by their final indices in the uplotSeries array.
+    let idealBandConfig: uPlot.Band[] | undefined
+    if (idealRange && idealRange.lower < idealRange.upper) {
+      const upperArr = new Float64Array(bandCentres.length).fill(idealRange.upper)
+      const lowerArr = new Float64Array(bandCentres.length).fill(idealRange.lower)
+      // Indices: existing series count + this push order.
+      // ySeriesArrays grows by 2; uplotSeries also grows by 2.
+      const upperIdx = uplotSeries.length // before push
+      const lowerIdx = upperIdx + 1
+      ySeriesArrays.push(upperArr)
+      uplotSeries.push({
+        // Invisible line — only used as the band's upper edge.
+        label: 'Target upper',
+        stroke: 'transparent',
+        width: 0,
+        points: { show: false },
+        // Hide from legend, this is overlay infrastructure, not data.
+        show: true,
+      })
+      ySeriesArrays.push(lowerArr)
+      uplotSeries.push({
+        label: 'Target lower',
+        stroke: 'transparent',
+        width: 0,
+        points: { show: false },
+        show: true,
+      })
+      idealBandConfig = [
+        {
+          series: [upperIdx, lowerIdx],
+          // Pale teal-green — sits behind the data lines without
+          // dominating. Same hue as the T30 metric tint, lower alpha.
+          fill: 'rgba(34, 161, 96, 0.18)',
+        },
+      ]
+    }
+
     const data = [xs, ...ySeriesArrays] as unknown as uPlot.AlignedData
 
     // Y-axis range: auto-fit data, but never exceed maxRtSec ceiling.
+    // If an ideal-range band is shown, make sure its upper edge is
+    // visible too — extend dataMax to include it.
     let dataMax = 0
     for (const arr of ySeriesArrays) {
       for (const v of arr) {
@@ -230,6 +279,7 @@ export default function RTSpectrumPlot({
         },
       ],
       series: uplotSeries,
+      bands: idealBandConfig,
     }
 
     const plot = new uPlot(opts, data, containerRef.current)
@@ -248,7 +298,7 @@ export default function RTSpectrumPlot({
       ro.disconnect()
       plot.destroy()
     }
-  }, [bandCentres, series, height, effectiveHeight, maxRtSec, showDubiousOverlay, strokeWidth])
+  }, [bandCentres, series, height, effectiveHeight, maxRtSec, showDubiousOverlay, strokeWidth, idealRange])
 
   return <div ref={containerRef} className="rt-spectrum-plot" />
 }

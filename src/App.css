@@ -809,6 +809,68 @@
   flex-shrink: 0;
 }
 
+/* Comparison-view design-criteria inputs (volume + use). Stacked on
+   phone, side-by-side on tablet+ via the existing 768 px media query. */
+.criteria-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.criteria-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 160px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.criteria-input input,
+.criteria-input select {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 16px;
+  min-height: 44px;
+}
+
+.criteria-input input:focus,
+.criteria-input select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.criteria-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--color-accent-soft);
+  border: 1px solid rgba(0, 164, 139, 0.30);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+}
+
+.criteria-swatch {
+  display: inline-block;
+  width: 28px;
+  height: 14px;
+  background: rgba(34, 161, 96, 0.5);
+  border: 1px solid rgba(34, 161, 96, 0.7);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.criteria-warning {
+  margin-top: 0;
+}
+
 /* Recorded-impulse diagnostic waveform */
 .impulse-waveform-wrap {
   display: block;
