@@ -55,10 +55,14 @@ interface Props {
   /** Override the line stroke width. Useful for comparison mode where
    *  thicker lines help distinguish overlapping curves. Default 2. */
   strokeWidth?: number
-  /** Optional shaded band representing an "ideal" RT range — e.g. the
-   *  AS/NZS 2107 design target for a chosen room use + volume. Drawn
-   *  beneath the lines as a pale teal-green tint. */
-  idealRange?: { lower: number; upper: number }
+  /** Optional design-target overlay. Drawn as two concentric bands:
+   *  the inner "ideal" band is pale green, the outer "acceptable"
+   *  band (between ideal and acceptable bounds) is pale amber. Outside
+   *  the acceptable band there's no overlay. */
+  targetRange?: {
+    ideal: { lower: number; upper: number }
+    acceptable: { lower: number; upper: number }
+  }
 }
 
 const PALETTE = [
@@ -88,7 +92,7 @@ export default function RTSpectrumPlot({
   maxRtSec = 3,
   showDubiousOverlay = true,
   strokeWidth = 2,
-  idealRange,
+  targetRange,
 }: Props) {
   const effectiveHeight = height ?? defaultHeight()
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -183,45 +187,52 @@ export default function RTSpectrumPlot({
       }
     })
 
-    // ---- Ideal-range band overlay (e.g. AS/NZS 2107 design target) ----
+    // ---- Design-target overlay: two concentric bands ----
     //
-    // Drawn beneath the lines as a pale teal-green tint between two
-    // invisible series for the upper and lower bound. uPlot's bands
-    // feature fills between the two referenced series; we reference
-    // them by their final indices in the uplotSeries array.
-    let idealBandConfig: uPlot.Band[] | undefined
-    if (idealRange && idealRange.lower < idealRange.upper) {
-      const upperArr = new Float64Array(bandCentres.length).fill(idealRange.upper)
-      const lowerArr = new Float64Array(bandCentres.length).fill(idealRange.lower)
-      // Indices: existing series count + this push order.
-      // ySeriesArrays grows by 2; uplotSeries also grows by 2.
-      const upperIdx = uplotSeries.length // before push
-      const lowerIdx = upperIdx + 1
-      ySeriesArrays.push(upperArr)
-      uplotSeries.push({
-        // Invisible line — only used as the band's upper edge.
-        label: 'Target upper',
-        stroke: 'transparent',
-        width: 0,
-        points: { show: false },
-        // Hide from legend, this is overlay infrastructure, not data.
-        show: true,
-      })
-      ySeriesArrays.push(lowerArr)
-      uplotSeries.push({
-        label: 'Target lower',
-        stroke: 'transparent',
-        width: 0,
-        points: { show: false },
-        show: true,
-      })
-      idealBandConfig = [
-        {
-          series: [upperIdx, lowerIdx],
-          // Pale teal-green — sits behind the data lines without
-          // dominating. Same hue as the T30 metric tint, lower alpha.
-          fill: 'rgba(34, 161, 96, 0.18)',
-        },
+    // Drawn beneath the data lines:
+    //   - inside the "ideal" range -> pale teal-green
+    //   - between ideal and "acceptable" bounds -> pale amber
+    //   - outside the acceptable range -> nothing (data lines stand out)
+    //
+    // Implemented with four invisible series (acceptable upper, ideal
+    // upper, ideal lower, acceptable lower) and three uPlot bands.
+    let bandsConfig: uPlot.Band[] | undefined
+    if (
+      targetRange &&
+      targetRange.ideal.lower < targetRange.ideal.upper &&
+      targetRange.acceptable.lower <= targetRange.ideal.lower &&
+      targetRange.acceptable.upper >= targetRange.ideal.upper
+    ) {
+      const accUpperIdx = uplotSeries.length
+      const idealUpperIdx = accUpperIdx + 1
+      const idealLowerIdx = accUpperIdx + 2
+      const accLowerIdx = accUpperIdx + 3
+
+      const pushOverlay = (value: number, label: string) => {
+        const arr = new Float64Array(bandCentres.length).fill(value)
+        ySeriesArrays.push(arr)
+        uplotSeries.push({
+          label,
+          stroke: 'transparent',
+          width: 0,
+          points: { show: false },
+        })
+      }
+      pushOverlay(targetRange.acceptable.upper, 'Acceptable upper')
+      pushOverlay(targetRange.ideal.upper, 'Ideal upper')
+      pushOverlay(targetRange.ideal.lower, 'Ideal lower')
+      pushOverlay(targetRange.acceptable.lower, 'Acceptable lower')
+
+      const idealFill = 'rgba(34, 161, 96, 0.22)'   // pale teal-green
+      const acceptableFill = 'rgba(212, 136, 30, 0.14)' // pale amber
+
+      bandsConfig = [
+        // Upper amber flank — between acceptable upper and ideal upper.
+        { series: [accUpperIdx, idealUpperIdx], fill: acceptableFill },
+        // Ideal green band — between ideal upper and ideal lower.
+        { series: [idealUpperIdx, idealLowerIdx], fill: idealFill },
+        // Lower amber flank — between ideal lower and acceptable lower.
+        { series: [idealLowerIdx, accLowerIdx], fill: acceptableFill },
       ]
     }
 
@@ -279,7 +290,7 @@ export default function RTSpectrumPlot({
         },
       ],
       series: uplotSeries,
-      bands: idealBandConfig,
+      bands: bandsConfig,
     }
 
     const plot = new uPlot(opts, data, containerRef.current)
@@ -298,7 +309,7 @@ export default function RTSpectrumPlot({
       ro.disconnect()
       plot.destroy()
     }
-  }, [bandCentres, series, height, effectiveHeight, maxRtSec, showDubiousOverlay, strokeWidth, idealRange])
+  }, [bandCentres, series, height, effectiveHeight, maxRtSec, showDubiousOverlay, strokeWidth, targetRange])
 
   return <div ref={containerRef} className="rt-spectrum-plot" />
 }

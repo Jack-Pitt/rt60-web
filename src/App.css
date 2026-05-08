@@ -702,6 +702,18 @@
   color: var(--color-text-secondary);
 }
 
+/* Headline MFRT readout right-aligned within each history row. */
+.history-mfrt {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  margin-left: 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .history-delete {
   width: 48px;
   background: transparent;
@@ -858,11 +870,22 @@
 }
 
 .criteria-swatch {
+  /* Three-stripe swatch matches the two-zone overlay on the plot:
+     amber flank / teal-green ideal / amber flank. */
   display: inline-block;
-  width: 28px;
+  width: 36px;
   height: 14px;
-  background: rgba(34, 161, 96, 0.5);
-  border: 1px solid rgba(34, 161, 96, 0.7);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(212, 136, 30, 0.40) 0%,
+      rgba(212, 136, 30, 0.40) 25%,
+      rgba(34, 161, 96, 0.55) 25%,
+      rgba(34, 161, 96, 0.55) 75%,
+      rgba(212, 136, 30, 0.40) 75%,
+      rgba(212, 136, 30, 0.40) 100%
+    );
+  border: 1px solid rgba(34, 161, 96, 0.6);
   border-radius: 3px;
   flex-shrink: 0;
 }

@@ -299,7 +299,7 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
   const [useId, setUseId] = useState<string>('')
   const volumeM3 = Number.parseFloat(volumeInput)
   const selectedCriteria = useId ? findCriteria(useId) : undefined
-  const idealRange =
+  const criteriaResult =
     selectedCriteria && Number.isFinite(volumeM3) && volumeM3 > 0
       ? selectedCriteria.rangeFor(volumeM3)
       : null
@@ -388,17 +388,19 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
           </select>
         </label>
       </div>
-      {idealRange && (
+      {criteriaResult && (
         <div className="criteria-summary">
           <span className="criteria-swatch" />
           <span>
-            <strong>Target RT:</strong> {idealRange.lower.toFixed(2)}–{idealRange.upper.toFixed(2)} s
+            <strong>Ideal:</strong> {criteriaResult.ideal.lower.toFixed(2)}–{criteriaResult.ideal.upper.toFixed(2)} s
+            {' · '}
+            <strong>Acceptable:</strong> {criteriaResult.acceptable.lower.toFixed(2)}–{criteriaResult.acceptable.upper.toFixed(2)} s
             {selectedCriteria?.description ? ` · ${selectedCriteria.description}` : ''}
           </span>
         </div>
       )}
-      {idealRange?.warning && (
-        <div className="alert alert-warn criteria-warning">{idealRange.warning}</div>
+      {criteriaResult?.warning && (
+        <div className="alert alert-warn criteria-warning">{criteriaResult.warning}</div>
       )}
 
       <RTSpectrumPlot
@@ -412,7 +414,11 @@ function ComparisonView({ items, onBack, maxRtSec }: ComparisonProps) {
         // iPad/desktop get the taller plot automatically.
         showDubiousOverlay={false}
         strokeWidth={2.5}
-        idealRange={idealRange ? { lower: idealRange.lower, upper: idealRange.upper } : undefined}
+        targetRange={
+          criteriaResult
+            ? { ideal: criteriaResult.ideal, acceptable: criteriaResult.acceptable }
+            : undefined
+        }
       />
       <ul className="compare-legend">
         {items.map((item, i) => (
@@ -448,6 +454,14 @@ interface RowProps {
 
 function HistoryRow({ item, compareMode, selected, onOpen, onDelete }: RowProps) {
   const meta = item.metadata
+  // Headline single-number RT for the row — use MFRT (mid-band RT) when
+  // it's available and finite. Old measurements (saved before the MFRT
+  // change) have a broadband Overall result instead, which still works
+  // as a fallback "RT-ish" number to show.
+  const mfrt = item.result.overall?.reportedRtSeconds
+  const mfrtLabel = Number.isFinite(mfrt)
+    ? `MFRT ${mfrt.toFixed(2)} s`
+    : null
   return (
     <li className={`history-item ${selected ? 'selected' : ''}`}>
       <button className="history-open" onClick={onOpen}>
@@ -467,6 +481,7 @@ function HistoryRow({ item, compareMode, selected, onOpen, onDelete }: RowProps)
             {new Date(item.timestamp).toLocaleString()} · {IMPULSE_SOURCE_LABELS[meta.impulseSource]}
           </div>
         </div>
+        {mfrtLabel && <div className="history-mfrt">{mfrtLabel}</div>}
       </button>
       {!compareMode && (
         <button className="history-delete" onClick={onDelete} aria-label="Delete">

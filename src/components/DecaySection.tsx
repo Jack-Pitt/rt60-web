@@ -4,8 +4,9 @@ import DecayPlot from './DecayPlot'
 
 // Decay-curve section embedded above the results table.
 //
-// Default view: the broadband ("Overall") Schroeder decay curve, which
-// is the conventional single-line summary of a measurement. Below the
+// Default view: the mid-band-filtered ("MFRT") Schroeder decay curve,
+// which is the conventional single-number summary of a room's RT
+// (ISO 3382 T_mid convention). Below the
 // plot, a row of buttons lets the user switch to any individual band's
 // curve. Each band button is coloured according to its reported metric
 // (T30/T20/EDT-only/invalid) — at a glance the user sees which bands
@@ -38,7 +39,7 @@ export default function DecaySection({ result }: Props) {
         noisePlateauDb={view.noisePlateauDb}
       />
 
-      {/* Selector buttons: Overall first, then every band. Coloured by
+      {/* Selector buttons: MFRT first, then every band. Coloured by
           reported metric so the user can scan at a glance for which bands
           are reliable (green) vs which need checking (orange / red). */}
       <div className="decay-buttons">
@@ -48,7 +49,7 @@ export default function DecaySection({ result }: Props) {
           }`}
           onClick={() => setSelection({ kind: 'overall' })}
         >
-          Overall
+          MFRT
         </button>
         {result.bands.map((b) => (
           <DecayButton
@@ -89,8 +90,9 @@ function resolveSelection(sel: Selection, result: AnalysisResult): ResolvedView 
 
 function viewFromOverall(o: AnalysisResult['overall']): ResolvedView {
   return {
-    title: 'Overall (broadband)',
-    subtitle: 'Unfiltered impulse response — the conventional single-line summary.',
+    title: 'MFRT (mid-frequency, 354–1414 Hz)',
+    subtitle:
+      'Bandpass-filtered to the 500 Hz + 1 kHz octave union — ISO 3382 T_mid range. Single-number RT for the room.',
     metric: o.reportedMetric,
     pipeline: o,
     edcDb: o.edcDb,
@@ -181,7 +183,7 @@ function DecayButton({
 function DecayLegend() {
   return (
     <div className="decay-legend">
-      <span className="legend-swatch decay-button-overall" /> Overall
+      <span className="legend-swatch decay-button-overall" /> MFRT
       <span className="legend-swatch metric-T30" /> T30
       <span className="legend-swatch metric-T20" /> T20
       <span className="legend-swatch metric-EDT-only" /> EDT-only

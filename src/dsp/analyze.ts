@@ -189,9 +189,12 @@ export function analyzeImpulseResponse(
   for (const band of bands) {
     results.push(analyseBand(input, band, thresholds, r2Floor))
   }
-  // Broadband ("Overall") analysis on the unfiltered signals. Default
-  // view on the decay-curve display.
-  const overall = analyseOverall(input, thresholds, r2Floor)
+  // Mid-band-filtered ("MFRT") analysis. Replaces the previous broadband
+  // overall view — the broadband EDC was dominated by low-frequency
+  // energy, making its T30 misleading. The mid-band filter spans the
+  // 500 Hz + 1 kHz octave union (≈ 354–1414 Hz, ISO 3382 T_mid range)
+  // which is the canonical single-number representation of room RT.
+  const overall = analyseMidBand(input, thresholds, r2Floor)
   return {
     sampleRate: input.sampleRate,
     bands: results,
@@ -233,18 +236,36 @@ function analyseBand(
   return { ...pipeline, band }
 }
 
-function analyseOverall(
+/** Mid-frequency band edges per ISO 3382 T_mid: union of the 500 Hz and
+ *  1 kHz octave bands. Lower edge = 500 / sqrt(2) ≈ 354 Hz; upper edge =
+ *  1000 * sqrt(2) ≈ 1414 Hz. */
+export const MID_BAND_LOWER_HZ = 500 / Math.SQRT2
+export const MID_BAND_UPPER_HZ = 1000 * Math.SQRT2
+
+function analyseMidBand(
   input: AnalysisInput,
   thresholds: InrThresholds,
   r2Floor: number,
 ): OverallResult {
-  // No filtering — the broadband impulse and noise are used as-is. This
-  // is the conventional "overall energy decay" view in acoustic software,
-  // dominated by whatever frequency content the impulse source produced.
+  // Bandpass to the mid-band before Schroeder integration so the EDC
+  // (and its derived T30) reflects the speech-intelligibility-relevant
+  // frequency range rather than being dragged around by low-frequency
+  // energy. ISO 3382 T_mid convention.
+  const sections = designButterworthBandpass(
+    MID_BAND_LOWER_HZ,
+    MID_BAND_UPPER_HZ,
+    input.sampleRate,
+  )
+  const filteredImpulse = applyBiquadCascade(input.impulse, sections)
+  const filteredNoise = applyBiquadCascade(input.noise, sections)
+  const filteredPreNoise = input.preNoise
+    ? applyBiquadCascade(input.preNoise, sections)
+    : null
+
   return runDecayPipeline(
-    input.impulse,
-    input.noise,
-    input.preNoise ?? null,
+    filteredImpulse,
+    filteredNoise,
+    filteredPreNoise,
     input.sampleRate,
     input.clipped,
     thresholds,
