@@ -123,11 +123,17 @@ For each iPhone-side impulse, before moving on:
       to the noise plateau in a roughly straight line. A two-slope
       ("kinked") shape, a slow-fast-slow triple-slope, or an upper
       flattening indicates an issue — see [section 4](#4-visual-decay-curve-diagnostics).
-- ☐ Look at the **band button row** on the decay-curve panel. **Bright
-      red** buttons (clipped or non-linear) and **dark red** invalid
-      buttons in the mid-band cluster (250 Hz – 2 kHz) warrant a retake.
+- ☐ Look at the **band button row** on the decay-curve panel. Bands
+      flagged with the new `peak-clipped` (advisory amber message) are
+      still valid for T30; `sustained-clipped` or `t30-fit-in-clip`
+      (red message + bright-red buttons) warrant a retake. Non-linear
+      bands in the mid-band cluster (250 Hz – 2 kHz) and `invalid`
+      bands also warrant a retake. See section 4.3 for the clipping
+      severity model.
 
-If a measurement is bad, tap **Discard** rather than Save.
+If a measurement is genuinely bad, tap **Discard** rather than Save.
+A "Peak SPL exceeded for ~20 ms" amber message is *not* bad — it just
+means EDT is mildly inflated; T30 is fine.
 
 ---
 
@@ -295,13 +301,68 @@ plus-uncorrelated-noise, so a true intrusion can corrupt the slope.
 **What to do**: discard the measurement. Take another when the room
 settles.
 
-### 4.3 Diagnostic checklist (per measurement)
+### 4.3 Clipping — when to worry and when not
+
+The most counter-intuitive finding from the May 2026 NVC validation
+(iPhone 16 Pro Max vs Type 1 SLM, simultaneous clapper impulses):
+**brief peak clipping does not corrupt T30**. Detailed analysis at
+[TEST DATA/ANALYSIS-2026-05-25.md](./TEST%20DATA/ANALYSIS-2026-05-25.md).
+
+#### Why it doesn't matter
+
+A clipped sample loses absolute amplitude information at the peak,
+but the **decay slope** below the saturation ceiling is intact.
+T30 fits a regression from −5 dB to −35 dB. In a typical clapper-in-
+meeting-room recording, the mid-band signal drops below −5 dB about
+50–100 ms after the impulse. The iPhone microphone's clipped region
+on a clapper recovers within ~10–30 ms. So **the T30 fit window sits
+entirely in the post-recovery linear range** — clipping is over by
+the time the fit begins.
+
+In the May 2026 validation, MFRT agreement between iPhone (all five
+takes clipped) and SLM (none clipped) was **−0.9 %** — better than the
+precision of either instrument individually.
+
+#### What the app does about it
+
+The app now distinguishes three severity tiers in
+`result.clipping.severity`:
+
+| Tier | Definition | Visual treatment | T30 | EDT |
+|---|---|---|---|---|
+| `none` | No clipping anywhere in the buffer | No warning | Trustworthy | Trustworthy |
+| `peak` | Longest post-trigger clipped run ≤ 30 ms | Amber advisory: *"Peak SPL exceeded for ~N ms… T30 / T20 reliable; EDT may be slightly elevated"* | **Trustworthy** | Mildly inflated (3–10 %); EDT cells are dimmed and asterisked in the per-band table |
+| `sustained` | Longest run > 30 ms | Red error: *"Sustained clipping… RT values likely unreliable"* | **Suspect — retake** | Unreliable |
+
+Per band, an additional check: if the T30 regression window starts
+inside the still-clipped region (rare, but happens in extremely dead
+rooms where the signal drops below −5 dB within 30 ms), that band gets
+a `t30-fit-in-clip` flag and turns bright red regardless of overall
+severity.
+
+#### Practical guidance
+
+- **Amber clipping message** → save and use the measurement. EDT
+  should be cross-checked against the SLM if you're reporting EDT
+  specifically; T30 doesn't need cross-checking.
+- **Red sustained-clipping message** → reduce source level (move
+  further from the iPhone, or use a quieter source) and retake.
+- The 30 ms threshold is conservative — the May 2026 data showed
+  iPhone recovery in 10–30 ms, all well under the threshold. If you
+  see post-trigger clipping consistently exceeding 30 ms, the device
+  microphone has more inertia than the iPhone 16 Pro Max tested; the
+  threshold could be tuned, but err on the conservative side.
+
+### 4.4 Diagnostic checklist (per measurement)
 
 Run through these on the live results screen for every measurement:
 
 - ☐ **Recorded waveform**: trigger marker sits cleanly between
       pre-noise and the impulse peak. ✓ go on.
-- ☐ **Recorded waveform**: peak is a sharp spike, not a flat top. ✓
+- ☐ **Recorded waveform**: peak may be flat-topped (clipped) — that's
+      OK if it resolves within ~30 ms (the app's amber `peak-clipped`
+      tier). Only flag flat-tops that extend well past the impulse
+      onset (red `sustained-clipped` tier).
 - ☐ **Recorded waveform**: post-impulse envelope settles back to a
       similar density to the pre-noise within ~1 s. ✓
 - ☐ **Overall decay curve**: single straight slope down to plateau, no

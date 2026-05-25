@@ -162,18 +162,63 @@ describe('analyzeImpulseResponse on synthetic data', () => {
     expect(result.bands[0].reportedMetric).toBe('invalid')
   })
 
-  it('flags every band when the recording was clipped', () => {
+  it("classifies a brief peak-clipped burst as severity 'peak' (advisory)", () => {
     const Fs = 48000
     const rng = makeRng(42)
     const impulse = syntheticImpulse(Fs, 3, 0.6, rng)
+    // Inject a 5 ms clipped region right at the trigger (well under the
+    // 30 ms peak/sustained boundary). 5 ms @ 48 kHz = 240 samples.
+    const triggerIdx = 100 // somewhere near the start, before decay
+    for (let i = triggerIdx; i < triggerIdx + 240; i++) impulse[i] = 1.0
     const noise = syntheticNoise(Fs, 2, 1e-5, rng)
     const result = analyzeImpulseResponse(
-      { impulse, noise, sampleRate: Fs, clipped: true },
+      { impulse, noise, sampleRate: Fs, clipped: true, triggerSampleIndex: triggerIdx },
       { bands: [bandByCentre(1000)!, bandByCentre(2000)!] },
     )
+    expect(result.clipping?.severity).toBe('peak')
+    expect(result.clipping?.postTriggerMaxRunMs).toBeGreaterThan(4)
+    expect(result.clipping?.postTriggerMaxRunMs).toBeLessThan(6)
     for (const b of result.bands) {
-      expect(b.flags).toContain('clipped')
+      expect(b.flags).toContain('peak-clipped')
+      expect(b.flags).toContain('edt-affected')
+      expect(b.flags).not.toContain('sustained-clipped')
     }
+  })
+
+  it("classifies a long clipped burst as severity 'sustained' (critical)", () => {
+    const Fs = 48000
+    const rng = makeRng(43)
+    const impulse = syntheticImpulse(Fs, 3, 0.6, rng)
+    // 80 ms clipped region (well over the 30 ms boundary). 80 ms @
+    // 48 kHz = 3840 samples.
+    const triggerIdx = 100
+    for (let i = triggerIdx; i < triggerIdx + 3840; i++) impulse[i] = 1.0
+    const noise = syntheticNoise(Fs, 2, 1e-5, rng)
+    const result = analyzeImpulseResponse(
+      { impulse, noise, sampleRate: Fs, clipped: true, triggerSampleIndex: triggerIdx },
+      { bands: [bandByCentre(1000)!, bandByCentre(2000)!] },
+    )
+    expect(result.clipping?.severity).toBe('sustained')
+    for (const b of result.bands) {
+      expect(b.flags).toContain('sustained-clipped')
+      expect(b.flags).toContain('edt-affected')
+      expect(b.flags).not.toContain('peak-clipped')
+    }
+  })
+
+  it("reports severity 'none' when no samples hit ±1.0", () => {
+    const Fs = 48000
+    const rng = makeRng(44)
+    const impulse = syntheticImpulse(Fs, 3, 0.6, rng) // amplitudes < 0.5
+    const noise = syntheticNoise(Fs, 2, 1e-5, rng)
+    const result = analyzeImpulseResponse(
+      { impulse, noise, sampleRate: Fs, clipped: false },
+      { bands: [bandByCentre(1000)!] },
+    )
+    expect(result.clipping?.severity).toBe('none')
+    expect(result.bands[0].flags).not.toContain('peak-clipped')
+    expect(result.bands[0].flags).not.toContain('sustained-clipped')
+    expect(result.bands[0].flags).not.toContain('edt-affected')
   })
 
   it('flags low/high bands as uncertain-freq', () => {

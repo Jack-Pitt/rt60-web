@@ -1,0 +1,8 @@
+# Don't commit raw test recordings — JSON exports with per-band EDC
+# arrays can easily exceed GitHub's 100 MB per-file limit, and the
+# WAV files are reference data better kept on local disk. Analysis
+# reports (Markdown) ARE committed so the conclusions live with the
+# code.
+*.WAV
+*.wav
+*.json

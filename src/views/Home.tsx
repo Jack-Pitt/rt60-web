@@ -121,7 +121,19 @@ export default function Home() {
             {new Date(item.timestamp).toLocaleString()} · {IMPULSE_SOURCE_LABELS[meta.impulseSource]}
             {meta.notes ? ` · "${meta.notes}"` : ''}
           </p>
-          {item.result.clipped && (
+          {item.result.clipping?.severity === 'peak' && (
+            <div className="alert alert-warn">
+              Peak SPL exceeded for ~{Math.round(item.result.clipping.postTriggerMaxRunMs)} ms at the impulse.
+              T30 / T20 reliable; EDT may be slightly elevated.
+            </div>
+          )}
+          {item.result.clipping?.severity === 'sustained' && (
+            <div className="alert alert-error">
+              Sustained clipping ({Math.round(item.result.clipping.postTriggerMaxRunMs)} ms post-impulse) —
+              RT values likely unreliable.
+            </div>
+          )}
+          {item.result.clipped && !item.result.clipping && (
             <div className="alert alert-error">
               Recording clipped — see flagged bands.
             </div>

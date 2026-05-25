@@ -33,18 +33,33 @@ import { inrDb, peakAbs, rms } from './noise'
 export type ReportedMetric = 'T30' | 'T20' | 'EDT-only' | 'invalid'
 
 export type ResultFlag =
+  /** Legacy umbrella flag used by old saved measurements (pre v1.1).
+   *  New measurements use 'peak-clipped' / 'sustained-clipped' instead. */
   | 'clipped'
+  /** Brief peak clipping that resolves within ~30 ms post-trigger.
+   *  T30 / T20 fits sit cleanly below the clip — trustworthy.
+   *  Advisory only; NOT critical. */
+  | 'peak-clipped'
+  /** Clipping persists into the T30 fit window. Discard for RT60. */
+  | 'sustained-clipped'
+  /** EDT fit (0 to −10 dB) overlaps the still-clipped region, so the
+   *  EDT number is slightly inflated. Advisory; T30 unaffected. */
+  | 'edt-affected'
+  /** Per-band: this specific band's T30 regression window starts
+   *  inside the clipped region — its T30 cannot be trusted even
+   *  though the recording was only briefly clipped. Critical. */
+  | 't30-fit-in-clip'
   | 'non-linear'
   | 'uncertain-freq'
   | 'low-INR'
 
 /** Critical flags whose presence overrides the row's metric colour to red.
- *  A measurement that was clipped or has a non-linear decay is unreliable
- *  regardless of which T-metric was nominally reportable.
- *  (low-INR is implied by EDT-only or invalid metric, so isn't critical
- *  on its own.) */
+ *  A measurement carrying any of these is unreliable regardless of which
+ *  T-metric was nominally reportable. */
 export const CRITICAL_FLAGS: ReadonlyArray<ResultFlag> = [
-  'clipped',
+  'clipped',              // legacy compat — old saved measurements
+  'sustained-clipped',    // clipping reached into T30's fit window
+  't30-fit-in-clip',      // per-band: T30 fit can't escape the clip
   'non-linear',
 ]
 
@@ -139,13 +154,50 @@ export interface DecayPipelineResult {
  *  but without band metadata. */
 export type OverallResult = DecayPipelineResult
 
+/** Severity classification for any clipping detected on the recording.
+ *  Backed by empirical validation against a Type 1 SLM in May 2026 —
+ *  brief peak clipping was confirmed not to affect T30 accuracy in the
+ *  mid bands, while sustained clipping does corrupt the fit window. */
+export type ClippingSeverity = 'none' | 'peak' | 'sustained'
+
+/** Empirical threshold separating "brief peak clipping" (T30 trustworthy)
+ *  from "sustained clipping" (T30 may be affected). Measured post-trigger;
+ *  the iPhone 16 Pro Max in the May 2026 validation recovered within
+ *  10–30 ms, with T30 agreeing with the SLM to within ~1 %. */
+export const PEAK_CLIP_MAX_MS = 30
+
+export interface ClippingSummary {
+  /** Total samples that hit ±1.0 anywhere in the impulse buffer. */
+  totalClippedSamples: number
+  /** Longest contiguous run of clipped samples anywhere in the buffer. */
+  maxRunSamples: number
+  /** Same as maxRunSamples in ms. */
+  maxRunMs: number
+  /** Longest contiguous clipped run starting at or after the trigger.
+   *  This is what the severity classification is based on. */
+  postTriggerMaxRunSamples: number
+  /** Same in ms. */
+  postTriggerMaxRunMs: number
+  /** Classification — see PEAK_CLIP_MAX_MS for the boundary. */
+  severity: ClippingSeverity
+  /** Sample index (in the impulse buffer's coordinate frame) where the
+   *  longest post-trigger clipped run ends. Used per-band to verify the
+   *  T30 fit window (regression range start) clears the clip. */
+  clipEndSample: number
+}
+
 export interface AnalysisResult {
   sampleRate: number
   bands: BandResult[]
   /** Broadband (unfiltered) decay curve and metrics. Always computed. */
   overall: OverallResult
-  /** Whether the original raw recording clipped (any band). */
+  /** Whether the original raw recording clipped (any sample at ±1.0).
+   *  Kept as a backwards-compat boolean; see `clipping` for severity. */
   clipped: boolean
+  /** Detailed clipping summary used to set the new peak/sustained flags
+   *  and to drive per-band "t30-fit-in-clip" checks. Optional only for
+   *  backwards compat with old saved measurements. */
+  clipping?: ClippingSummary
   /** Raw recorded impulse buffer (with pre-trigger margin) so the user
    *  can inspect the time-domain waveform for AGC pumping or clipping
    *  artefacts. Optional — measurements saved before this field was
@@ -153,6 +205,72 @@ export interface AnalysisResult {
   rawImpulse?: Float32Array
   /** Sample index within rawImpulse where the trigger fired. */
   triggerSampleIndex?: number
+}
+
+/**
+ * Scan the raw impulse buffer for clipped runs and classify the severity.
+ * Counts contiguous runs of samples whose |value| ≥ 1, both anywhere in
+ * the buffer and specifically at-or-after the trigger sample. The
+ * post-trigger run length is what matters for measurement validity —
+ * pre-trigger clipping (rare) doesn't affect the decay.
+ */
+export function analyseClipping(
+  impulse: Float32Array,
+  triggerSampleIndex: number,
+  sampleRate: number,
+): ClippingSummary {
+  const trigger = Math.max(0, Math.min(triggerSampleIndex | 0, impulse.length))
+  let totalClipped = 0
+  let maxRun = 0
+  let postTriggerMaxRun = 0
+  let postTriggerMaxRunEnd = trigger
+  let currentRun = 0
+  let currentRunStart = 0
+  for (let i = 0; i < impulse.length; i++) {
+    const a = Math.abs(impulse[i])
+    if (a >= 1.0) {
+      if (currentRun === 0) currentRunStart = i
+      currentRun++
+      totalClipped++
+    } else if (currentRun > 0) {
+      if (currentRun > maxRun) maxRun = currentRun
+      // Post-trigger contribution: count only the portion of the run
+      // that sits at/after the trigger sample.
+      const runEnd = i // (exclusive)
+      const runStart = currentRunStart
+      const postStart = Math.max(runStart, trigger)
+      const postLen = Math.max(0, runEnd - postStart)
+      if (postLen > postTriggerMaxRun) {
+        postTriggerMaxRun = postLen
+        postTriggerMaxRunEnd = runEnd
+      }
+      currentRun = 0
+    }
+  }
+  // Close out any run still open at the end of the buffer.
+  if (currentRun > 0) {
+    if (currentRun > maxRun) maxRun = currentRun
+    const postStart = Math.max(currentRunStart, trigger)
+    const postLen = Math.max(0, impulse.length - postStart)
+    if (postLen > postTriggerMaxRun) {
+      postTriggerMaxRun = postLen
+      postTriggerMaxRunEnd = impulse.length
+    }
+  }
+  const postTriggerMaxRunMs = (postTriggerMaxRun / sampleRate) * 1000
+  let severity: ClippingSeverity
+  if (totalClipped === 0) severity = 'none'
+  else if (postTriggerMaxRunMs <= PEAK_CLIP_MAX_MS) severity = 'peak'
+  else severity = 'sustained'
+  return {
+    totalClippedSamples: totalClipped,
+    maxRunSamples: maxRun,
+    maxRunMs: (maxRun / sampleRate) * 1000,
+    postTriggerMaxRunSamples: postTriggerMaxRun,
+    postTriggerMaxRunMs,
+    severity,
+    clipEndSample: postTriggerMaxRunEnd,
+  }
 }
 
 export interface InrThresholds {
@@ -185,21 +303,32 @@ export function analyzeImpulseResponse(
   const bands = options.bands ?? BANDS
   const r2Floor = options.nonLinearR2Threshold ?? 0.95
 
+  // Characterise clipping ONCE from the raw impulse — same answer for
+  // every band since they all share the same recording. The per-band
+  // pipeline uses this to set the new peak/sustained flags and to test
+  // each band's T30 fit window against the clip-recovery point.
+  const clipping = analyseClipping(
+    input.impulse,
+    input.triggerSampleIndex ?? 0,
+    input.sampleRate,
+  )
+
   const results: BandResult[] = []
   for (const band of bands) {
-    results.push(analyseBand(input, band, thresholds, r2Floor))
+    results.push(analyseBand(input, band, thresholds, r2Floor, clipping))
   }
   // Mid-band-filtered ("MFRT") analysis. Replaces the previous broadband
   // overall view — the broadband EDC was dominated by low-frequency
   // energy, making its T30 misleading. The mid-band filter spans the
   // 500 Hz + 1 kHz octave union (≈ 354–1414 Hz, ISO 3382 T_mid range)
   // which is the canonical single-number representation of room RT.
-  const overall = analyseMidBand(input, thresholds, r2Floor)
+  const overall = analyseMidBand(input, thresholds, r2Floor, clipping)
   return {
     sampleRate: input.sampleRate,
     bands: results,
     overall,
-    clipped: input.clipped,
+    clipped: clipping.severity !== 'none',
+    clipping,
     // Keep a reference to the raw recording for the diagnostic waveform
     // display and (later) re-analysis with different settings. We don't
     // copy because the caller's buffer is captured-once and not mutated.
@@ -213,6 +342,7 @@ function analyseBand(
   band: Band,
   thresholds: InrThresholds,
   r2Floor: number,
+  clipping: ClippingSummary,
 ): BandResult {
   // Design and apply the bandpass filter for this band.
   const sections = designButterworthBandpass(band.lower, band.upper, input.sampleRate)
@@ -227,7 +357,7 @@ function analyseBand(
     filteredNoise,
     filteredPreNoise,
     input.sampleRate,
-    input.clipped,
+    clipping,
     thresholds,
     r2Floor,
   )
@@ -246,6 +376,7 @@ function analyseMidBand(
   input: AnalysisInput,
   thresholds: InrThresholds,
   r2Floor: number,
+  clipping: ClippingSummary,
 ): OverallResult {
   // Bandpass to the mid-band before Schroeder integration so the EDC
   // (and its derived T30) reflects the speech-intelligibility-relevant
@@ -267,7 +398,7 @@ function analyseMidBand(
     filteredNoise,
     filteredPreNoise,
     input.sampleRate,
-    input.clipped,
+    clipping,
     thresholds,
     r2Floor,
   )
@@ -284,7 +415,7 @@ function runDecayPipeline(
   filteredNoise: Float32Array,
   filteredPreNoise: Float32Array | null,
   sampleRate: number,
-  clipped: boolean,
+  clipping: ClippingSummary,
   thresholds: InrThresholds,
   r2Floor: number,
 ): DecayPipelineResult {
@@ -356,7 +487,29 @@ function runDecayPipeline(
 
   // 4) Flags. Band-specific flags (uncertain-freq) are added by callers.
   const flags: ResultFlag[] = []
-  if (clipped) flags.push('clipped')
+  if (clipping.severity === 'peak') {
+    // Brief peak clipping — empirically validated as T30-safe in mid
+    // bands (May 2026 NVC test). EDT is still mildly inflated.
+    flags.push('peak-clipped')
+    flags.push('edt-affected')
+  } else if (clipping.severity === 'sustained') {
+    // Clipping persists into the T30 fit window — discard.
+    flags.push('sustained-clipped')
+    flags.push('edt-affected')
+  }
+  // Per-band T30 fit-window cleanliness check: if the regression range
+  // starts before the clip ends, the band's T30 number was fitted on
+  // partially-clipped data and is suspect. Critical even when the
+  // overall severity is only "peak". Only applies when a T30/T20 was
+  // actually fitted (not for EDT-only / invalid bands).
+  if (
+    clipping.severity !== 'none' &&
+    (reportedMetric === 'T30' || reportedMetric === 'T20') &&
+    reportedRange[0] >= 0 &&
+    reportedRange[0] < clipping.clipEndSample
+  ) {
+    flags.push('t30-fit-in-clip')
+  }
   if (reportedMetric === 'EDT-only') flags.push('low-INR')
   if (Number.isFinite(reportedR2) && reportedR2 < r2Floor) flags.push('non-linear')
 

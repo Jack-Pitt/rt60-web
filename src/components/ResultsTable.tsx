@@ -3,9 +3,15 @@ import { CRITICAL_FLAGS, type AnalysisResult, type BandResult } from '../dsp/ana
 // Per-band results table.
 // Columns: Band Hz | RT (s) | metric | EDT (s) | INR (dB) | R^2 | Flags.
 // Row colour:
-//   - any critical flag (clipped, non-linear, background-changed) -> RED override
-//   - else by metric: T30 dark green, T20 light green, EDT-only orange, invalid red
-//   - bands with uncertain mic response (50–100 Hz, 6.3–10 kHz) get a hashed background overlay
+//   - any critical flag (sustained-clipped, non-linear, t30-fit-in-clip,
+//     or legacy 'clipped' from old saved measurements) -> RED override
+//   - else by metric: T30 dark green, T20 light green, EDT-only orange,
+//     invalid red
+//   - bands with uncertain mic response (50–100 Hz, 6.3–10 kHz) get a
+//     hashed background overlay
+// EDT cell:
+//   - dimmed + italic when 'edt-affected' is set (brief peak clipping
+//     inflates EDT but T30 stays trustworthy)
 
 interface Props {
   result: AnalysisResult
@@ -48,12 +54,19 @@ function ResultRow({ b }: { b: BandResult }) {
   const hasCriticalFlag = b.flags.some((f) => CRITICAL_FLAGS.includes(f))
   const baseClass = hasCriticalFlag ? 'metric-critical' : `metric-${b.reportedMetric}`
   const className = `${baseClass}${b.band.uncertain ? ' uncertain' : ''}`
+  // EDT is dimmed when peak clipping has inflated it but T30 is still
+  // trustworthy. The user still sees the number — just visually demoted
+  // so they know not to lean on it.
+  const edtAffected = b.flags.includes('edt-affected')
   return (
     <tr className={className}>
       <td>{formatHz(b.band.centre)}</td>
       <td>{formatRt(b.reportedRtSeconds)}</td>
       <td>{b.reportedMetric}</td>
-      <td>{formatRt(b.edtSeconds)}</td>
+      <td className={edtAffected ? 'edt-cell affected' : 'edt-cell'}>
+        {formatRt(b.edtSeconds)}
+        {edtAffected ? <span className="edt-affected-mark" title="EDT inflated by peak clipping">*</span> : null}
+      </td>
       <td>{Number.isFinite(b.inrDb) ? b.inrDb.toFixed(1) : '—'}</td>
       <td>{Number.isFinite(b.reportedR2) ? b.reportedR2.toFixed(3) : '—'}</td>
       <td className="flags-cell">

@@ -223,7 +223,28 @@ export default function Measurement() {
           {meta.site} / {meta.room} / pos {meta.position} —{' '}
           {IMPULSE_SOURCE_LABELS[meta.impulseSource]}
         </p>
-        {analysis.clipped && (
+        {/* Three-way clipping message, severity-aware. Brief peak
+            clipping is empirically T30-safe (May 2026 NVC validation),
+            so it gets an advisory amber tone rather than the previous
+            measurement-killing red. Sustained clipping keeps the red. */}
+        {analysis.clipping?.severity === 'peak' && (
+          <div className="alert alert-warn">
+            Peak SPL exceeded the device microphone's linear range for
+            ~{Math.round(analysis.clipping.postTriggerMaxRunMs)} ms at the impulse.
+            T30 / T20 values are reliable; EDT may be slightly elevated.
+            Reduce source level or move further away if you need EDT precision.
+          </div>
+        )}
+        {analysis.clipping?.severity === 'sustained' && (
+          <div className="alert alert-error">
+            Sustained clipping ({Math.round(analysis.clipping.postTriggerMaxRunMs)} ms post-impulse)
+            extends into the T30 fit window — RT values are likely unreliable.
+            Reduce source level or move further away and retake.
+          </div>
+        )}
+        {/* Backwards-compat: old saved measurements set the legacy
+            `clipped` boolean without the new clipping summary. */}
+        {analysis.clipped && !analysis.clipping && (
           <div className="alert alert-error">
             Recording clipped — impulse may be invalid. Reduce source level or move further away.
           </div>

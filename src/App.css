@@ -578,6 +578,22 @@
   font-size: 11px;
 }
 
+/* EDT cell dimmed + italicised when peak clipping has inflated it.
+   T30 stays at normal weight; user sees the EDT number but knows not
+   to lean on it. */
+.results-table td.edt-cell.affected {
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.edt-affected-mark {
+  font-weight: 700;
+  color: var(--color-edt);
+  margin-left: 2px;
+  opacity: 0.9;
+  cursor: help;
+}
+
 .flag-chip {
   display: inline-block;
   padding: 1px 6px;
